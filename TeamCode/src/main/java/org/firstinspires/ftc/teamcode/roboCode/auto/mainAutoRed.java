@@ -37,8 +37,8 @@ public class mainAutoRed extends LinearOpMode {
     private double targetSpeed = 0.0;
 
     // Define poses
-    private final Pose startPose = new Pose(84, 12, Math.toRadians(0));
-    private final Pose targetPose = new Pose(84, 36, Math.toRadians(45));
+    private final Pose startPose = new Pose(84, 12, Math.toRadians(90));
+    private final Pose targetPose = new Pose(84, 14, Math.toRadians(45));
 
     // Define path
     private PathChain pathToTarget;
@@ -57,7 +57,7 @@ public class mainAutoRed extends LinearOpMode {
         transfer = hardwareMap.get(DcMotor.class,"Transfer");
 
         //Odo. computer
-        odoComputer = hardwareMap.get(GoBildaPinpointDriver.class, "odoComputer");
+        odoComputer = hardwareMap.get(GoBildaPinpointDriver.class, "pinpoint");
         odoComputer.initialize();
         odoComputer.resetPosAndIMU();
 
@@ -173,6 +173,10 @@ public class mainAutoRed extends LinearOpMode {
     public void shootBallUpdate() {
         switch (shootingState) {
             case 0:
+                // Start outtake
+                outtakePower = targetSpeed;
+                outtake.setPower(outtakePower);
+
                 // Start transfer
                 transfer.setPower(transferPower);
                 pathTimer.resetTimer();
@@ -187,8 +191,7 @@ public class mainAutoRed extends LinearOpMode {
                 break;
             case 2:
                 // Shoot the ball
-                outtakePower = targetSpeed;
-                outtake.setPower(outtakePower);
+                transfer.setPower(transferPower);
                 pathTimer.resetTimer();
                 shootingState = 3;
                 break;
