@@ -28,7 +28,7 @@ public class mainTeleOp extends LinearOpMode {
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime;
     private DcMotor frontLeftDrive, backLeftDrive, frontRightDrive, backRightDrive,
-            intake, outtake, transfer;
+            intake, outtake1, outtake2, transfer;
     private Servo b1, b2;
     private boolean aPressed = false;
     private boolean servopos = false;
@@ -68,7 +68,9 @@ public class mainTeleOp extends LinearOpMode {
         backRightDrive = hardwareMap.get(DcMotor.class, "rb");
         //shooting system
         intake = hardwareMap.get(DcMotor.class,"Intake");
-        outtake = hardwareMap.get(DcMotor.class,"Outtake");
+        //outtake 1 is in same orientation as previous outtake motor
+        outtake1 = hardwareMap.get(DcMotor.class,"Outtake1");
+        outtake2 = hardwareMap.get(DcMotor.class,"Outtake2");
         transfer = hardwareMap.get(DcMotor.class,"Transfer");
         //braking system
 
@@ -85,8 +87,9 @@ public class mainTeleOp extends LinearOpMode {
         frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
         backRightDrive.setDirection(DcMotor.Direction.FORWARD);
         intake.setDirection(DcMotor.Direction.REVERSE);
-        outtake.setDirection(DcMotor.Direction.REVERSE);
-        transfer.setDirection(DcMotorSimple.Direction.REVERSE);
+        outtake1.setDirection(DcMotor.Direction.REVERSE);
+        outtake2.setDirection(DcMotor.Direction.FORWARD);
+        transfer.setDirection(DcMotor.Direction.REVERSE);
 
         b1.setPosition(B1U);
         b2.setPosition(B2U);
@@ -115,9 +118,9 @@ public class mainTeleOp extends LinearOpMode {
             telemetry.addData("Status", "Run Time: " + runtime.toString());
             telemetry.addLine("===Testing intake and outtake===");
             telemetry.addData("Intake Power:", "%f", intake.getPower());
-            telemetry.addData("Outtake Power:","%f", outtake.getPower());
+            telemetry.addData("Outtake Power:","%f", (outtake1.getPower()+outtake2.getPower())/2);
 
-            //scanAprilTags();
+            scanAprilTags();
 
             telemetry.update();
         }
@@ -184,9 +187,10 @@ public class mainTeleOp extends LinearOpMode {
             adjust+=.05;
 
 
-        intake.setPower(intakePower);
-        outtake.setPower(outtakePower);
-        transfer.setPower(transferPower);
+        //intake.setPower(intakePower);
+        outtake1.setPower(outtakePower);
+        outtake2.setPower(outtakePower);
+        //transfer.setPower(transferPower);
 
     }
 
