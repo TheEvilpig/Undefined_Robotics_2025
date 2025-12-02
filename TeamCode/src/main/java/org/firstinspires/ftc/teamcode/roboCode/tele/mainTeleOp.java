@@ -73,7 +73,6 @@ public class mainTeleOp extends LinearOpMode {
         outtake2 = hardwareMap.get(DcMotor.class,"Outtake2");
         transfer = hardwareMap.get(DcMotor.class,"Transfer");
         //braking system
-
         b2 = hardwareMap.get(Servo.class, "ls");
         b1 = hardwareMap.get(Servo.class, "rs");
         //April Tags
