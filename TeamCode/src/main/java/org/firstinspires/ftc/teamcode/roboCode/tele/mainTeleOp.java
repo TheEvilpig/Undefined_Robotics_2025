@@ -12,11 +12,12 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
+import kotlin.math.UMathKt;
+
 @TeleOp(name="Main_TeleOp", group="Linear OpMode")
 public class mainTeleOp extends LinearOpMode {
-
     // Declare OpMode members for each of the 4 motors.
-    private ElapsedTime runtime;
+    private ElapsedTime runtime = new ElapsedTime();
     //DcMotorEx is basically like DcMotor but more advanced with more methods and capabilities
     private DcMotorEx frontLeftDrive, backLeftDrive, frontRightDrive, backRightDrive,
             intake, outtake1, outtake2, transfer;
@@ -30,8 +31,12 @@ public class mainTeleOp extends LinearOpMode {
     private Limelight3A limeLight;
     //needed to pair with limelight
     private IMU imu;
-    private boolean rBumper = false;
     private boolean lBumper = false;
+    private boolean xPressed = false;
+    private boolean bPressed = false;
+    private boolean outtakeOn = false;
+
+    private boolean intakeOn = false;
     private double rl = .8;
 
     //braking servo positions
@@ -41,12 +46,10 @@ public class mainTeleOp extends LinearOpMode {
     double B1U = 0.83;
     double B1C = 1;
     //for reversing intake and transfer
-    private double flip =1;
 
     @Override
 
     public void runOpMode() {
-        ElapsedTime runtime = new ElapsedTime();
         //chassis
         frontLeftDrive = hardwareMap.get(DcMotorEx.class, "lf");
         backLeftDrive = hardwareMap.get(DcMotorEx.class, "lb");
@@ -71,6 +74,12 @@ public class mainTeleOp extends LinearOpMode {
         backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
         backRightDrive.setDirection(DcMotor.Direction.FORWARD);
+
+        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
         intake.setDirection(DcMotor.Direction.REVERSE);
         outtake1.setDirection(DcMotor.Direction.REVERSE);
         outtake2.setDirection(DcMotor.Direction.FORWARD);
@@ -104,7 +113,8 @@ public class mainTeleOp extends LinearOpMode {
             telemetry.addLine("===Testing intake and outtake===");
             telemetry.addData("Intake Power:", "%f", intake.getPower());
             telemetry.addData("Outtake Power:","%f", (outtake1.getPower()+outtake2.getPower())/2);
-
+            telemetry.addData("Outtake1 Velocity:",outtake1.getVelocity());
+            telemetry.addData("Outtake2 Velocity:",outtake2.getVelocity());
             scanAprilTags();
 
             telemetry.update();
@@ -149,23 +159,50 @@ public class mainTeleOp extends LinearOpMode {
      * Drives the intake, transfer, outtake motors and braking system servos.
      */
     private void updateAuxiliaryMotors(){
-        if (gamepad1.right_bumper&&!rBumper)
-            flip = -flip;  // Flip once per press
-        rBumper = gamepad1.right_bumper;
+        //intake toggle
+        if(gamepad1.x&&!xPressed){
+            intakeOn=!intakeOn;
+            xPressed=true;
+        }
+        else if(!gamepad1.x)
+            xPressed=false;
+        double intakePower = intakeOn ? 1 :0.0;
 
-        double intakePower = gamepad1.x ? flip :0.0;
-        double transferPower = gamepad1.y ? flip :0;
+
+        if(gamepad1.b&&!bPressed){
+            outtakeOn=!outtakeOn;
+            bPressed=true;
+        }
+        else if(!gamepad1.b)
+            bPressed=false;
+        double outtakePower = outtakeOn ? 1 : 0;
+        double transferPower = gamepad1.y ? 1 : 0;
+
+        //conditions for 3 artifacts in robot
+        if(gamepad1.dpad_up) {
+            intakePower = 1;
+            transferPower=1;
+        }
+        if(gamepad1.dpad_down)
+            transferPower=-.44;
+
+
         //using velocity in order to find the right power.
+        /*
         double outtakeVelocity = gamepad1.b ? calculateOuttakeAngularVelocity():0;
-        double outtakePower = gamepad1.b ? 1:0;
-        if(calculateOuttakeAngularVelocity()!=-1){
+        if(calculateOuttakeAngularVelocity()!=-1&&intakePower!=1){
             outtake1.setVelocity(outtakeVelocity,AngleUnit.RADIANS);
             outtake2.setVelocity(outtakeVelocity,AngleUnit.RADIANS);
+            telemetry.addLine("Using setVelocity()");
         }
         else{
             outtake1.setPower(outtakePower);
             outtake2.setPower(outtakePower);
+            telemetry.addLine("Using setPower()");
         }
+         */
+        outtake1.setPower(outtakePower);
+        outtake2.setPower(outtakePower);
 
         if (gamepad1.a && !aPressed) {
             servoPos = !servoPos;
@@ -181,12 +218,8 @@ public class mainTeleOp extends LinearOpMode {
             b1.setPosition(B1U);
             b2.setPosition(B2U);
         }
-
-
-
-        intake.setPower(intakePower);
-
         transfer.setPower(transferPower);
+        intake.setPower(intakePower);
 
     }
 
@@ -210,26 +243,17 @@ public class mainTeleOp extends LinearOpMode {
 
         if(gamepad1.left_bumper && getDistance()!=-1) {
             //robot too much to the right of the target
-            double power = .5;
-            if (result.getTx() > getMaxDisplacementAngle()) {
-                frontLeftDrive.setPower(-power);
-                backLeftDrive.setPower(-power);
-                frontRightDrive.setPower(power);
-                backRightDrive.setPower(power);
-            }
-            //robot too much to the left of the target
-            else if (result.getTx() < -getMaxDisplacementAngle()) {
-                frontLeftDrive.setPower(-power);
-                backLeftDrive.setPower(-power);
-                frontRightDrive.setPower(power);
-                backRightDrive.setPower(power);
-            } else {
-                frontLeftDrive.setPower(0);
-                backLeftDrive.setPower(0);
-                frontRightDrive.setPower(0);
-                backRightDrive.setPower(0);
-            }
-            telemetry.addLine("Aligning...");
+            double k = .03;
+            double error = result.getTx();
+            double turnPower = k*error;
+            turnPower = Math.max(-.4,Math.min(.4,turnPower));
+            if(Math.abs(error)<1)
+                turnPower=0;
+            frontLeftDrive.setPower(turnPower);
+            backLeftDrive.setPower(turnPower);
+            frontRightDrive.setPower(-turnPower);
+            backRightDrive.setPower(-turnPower);
+
         }
 
     }
@@ -242,8 +266,8 @@ public class mainTeleOp extends LinearOpMode {
     private double getDistance(){
         //height of target, 30 inches in meters
         double h2 = 0.762;
-        //height of limelight in meters
-        double h1 = 0;
+        //height of limelight in meters, 8 inches
+        double h1 = 0.2032;
         //mounted angle of limelight in degrees
         double ang = 23;
         YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
@@ -269,7 +293,7 @@ public class mainTeleOp extends LinearOpMode {
         if(result!=null && result.isValid()) {
             if(getDistance()==-1)
                 return -1;
-            return Math.atan(16 / getDistance());
+            return Math.atan2(16.0,getDistance());
         }
         return -1;
     }
@@ -306,5 +330,4 @@ public class mainTeleOp extends LinearOpMode {
         }
         return -1;
     }
-
 }
