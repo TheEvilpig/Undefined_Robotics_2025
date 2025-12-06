@@ -1,8 +1,8 @@
 package org.firstinspires.ftc.teamcode.roboCode.auto;
 
 import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.Pose;
 import com.pedropathing.geometry.BezierLine;
+import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
@@ -13,8 +13,8 @@ import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
-@Autonomous(name="Main Autonomous Red",group = "Autonomous")
-public class mainAutoRed extends LinearOpMode {
+@Autonomous(name="Main Autonomous Blue",group = "Autonomous")
+public class mainAutoBlue extends LinearOpMode {
     DcMotor frontLeftDrive;
     DcMotor backLeftDrive;
     DcMotor frontRightDrive;
@@ -33,16 +33,15 @@ public class mainAutoRed extends LinearOpMode {
 
     // Power variables for intake, outtake, and transfer
     private double intakePower = 1;
-    private double outtakePower = 0.98;
+    private double outtakePower = 0.955;
     private double transferPower = 1;
     private double targetSpeed = 0.0;
 
     // Define poses
     private final Pose startPose = new Pose(84, 12, Math.toRadians(90));
-    private final Pose targetPose = new Pose(84, 5, Math.toRadians(67));
+    private final Pose targetPose = new Pose(84, 5, Math.toRadians(113));
 
-    private final Pose targetPose1 = new Pose(84, -20, Math.toRadians(67));
-
+    private final Pose targetPose1 = new Pose(84, -20, Math.toRadians(113));
 
     // Define path
     private PathChain pathToTarget;

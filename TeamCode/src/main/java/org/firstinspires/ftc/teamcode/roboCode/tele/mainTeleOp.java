@@ -37,6 +37,9 @@ public class mainTeleOp extends LinearOpMode {
     private boolean outtakeOn = false;
 
     private boolean intakeOn = false;
+    private boolean dpadUpPressed = false;
+    private boolean allOn = false;
+
     private double rl = .8;
 
     //braking servo positions
@@ -113,8 +116,8 @@ public class mainTeleOp extends LinearOpMode {
             telemetry.addLine("===Testing intake and outtake===");
             telemetry.addData("Intake Power:", "%f", intake.getPower());
             telemetry.addData("Outtake Power:","%f", (outtake1.getPower()+outtake2.getPower())/2);
-            telemetry.addData("Outtake1 Velocity:",outtake1.getVelocity());
-            telemetry.addData("Outtake2 Velocity:",outtake2.getVelocity());
+            telemetry.addData("Outtake1 Velocity:",outtake1.getVelocity(AngleUnit.RADIANS));
+            telemetry.addData("Outtake2 Velocity:",outtake2.getVelocity(AngleUnit.RADIANS));
             scanAprilTags();
             telemetry.update();
         }
@@ -159,6 +162,7 @@ public class mainTeleOp extends LinearOpMode {
      */
     private void updateAuxiliaryMotors(){
         //intake toggle
+        /*
         if(gamepad1.x&&!xPressed){
             intakeOn=!intakeOn;
             xPressed=true;
@@ -166,24 +170,40 @@ public class mainTeleOp extends LinearOpMode {
         else if(!gamepad1.x)
             xPressed=false;
         double intakePower = intakeOn ? 1 :0.0;
+        double transferPower = intakeOn ? 1 : 0;
 
-
+         */
+        double intakePower = gamepad1.x ? 1 :0.0;
+        double transferPower = gamepad1.x ? 1 : 0;
+        //outtake toggle
         if(gamepad1.b&&!bPressed){
             outtakeOn=!outtakeOn;
             bPressed=true;
         }
         else if(!gamepad1.b)
             bPressed=false;
-        double outtakePower = outtakeOn ? 1 : 0;
-        double transferPower = gamepad1.y ? 1 : 0;
+        double outtakePower = outtakeOn ?1:0;
+
 
         //conditions for 3 artifacts in robot
-        if(gamepad1.dpad_up) {
-            intakePower = 1;
-            transferPower=1;
+
+        if(gamepad1.dpad_up&&!dpadUpPressed){
+            allOn=!allOn;
+            dpadUpPressed=true;
         }
-        if(gamepad1.dpad_down)
-            transferPower=-.44;
+        else if(!gamepad1.dpad_up)
+            dpadUpPressed=false;
+
+        if(allOn){
+            intakePower=.9;
+            transferPower=.9;
+            outtakePower= -.44;
+        }
+
+        if(gamepad1.dpad_down) {
+            transferPower = -.44;
+            outtakePower = -.44;
+        }
 
 
         //using velocity in order to find the right power.
@@ -200,8 +220,11 @@ public class mainTeleOp extends LinearOpMode {
             telemetry.addLine("Using setPower()");
         }
          */
-        outtake1.setPower(outtakePower);
-        outtake2.setPower(outtakePower);
+        //outtake1.setPower(outtakePower);
+        //outtake2.setPower(outtakePower);
+
+        outtake1.setVelocity(4 * outtakePower, AngleUnit.RADIANS);
+        outtake2.setVelocity(4 * outtakePower, AngleUnit.RADIANS);
 
         if (gamepad1.a && !aPressed) {
             servoPos = !servoPos;
