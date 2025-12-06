@@ -12,15 +12,19 @@ buildscript {
     dependencies {
         // Note for FTC Teams: Do not modify this yourself.
         classpath 'com.android.tools.build:gradle:8.7.0'
+        // REMOVE Kotlin plugin if you are not using Kotlin
+        // classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:2.0.0"
     }
 }
 
-// This is now required because aapt2 has to be downloaded from the
-// google() repository beginning with version 3.2 of the Android Gradle Plugin
+// Required for aapt2 and Panels
 allprojects {
     repositories {
         mavenCentral()
         google()
+        maven {
+            url = "https://mymaven.bylazar.com/releases"
+        }
     }
 }
 

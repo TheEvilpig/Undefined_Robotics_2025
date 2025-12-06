@@ -21,6 +21,7 @@ public class mainAutoRed extends LinearOpMode {
     DcMotor backRightDrive;
     DcMotor intake;
     DcMotor outtake;
+    DcMotor outtake2;
     DcMotor transfer;
     Follower follower;
     GoBildaPinpointDriver odoComputer;
@@ -31,54 +32,28 @@ public class mainAutoRed extends LinearOpMode {
     private int ballsShot = 0;
 
     // Power variables for intake, outtake, and transfer
-    private double intakePower = 0.0;
-    private double outtakePower = 0.0;
-    private double transferPower = 0.0;
+    private double intakePower = 1;
+    private double outtakePower = 0.95;
+    private double transferPower = 1;
     private double targetSpeed = 0.0;
 
     // Define poses
-    private final Pose startPose = new Pose(84, 12, Math.toRadians(0));
-    private final Pose targetPose = new Pose(84, 36, Math.toRadians(45));
+    private final Pose startPose = new Pose(84, 12, Math.toRadians(90));
+    private final Pose targetPose = new Pose(84, 5, Math.toRadians(113));
 
     // Define path
     private PathChain pathToTarget;
 
     @Override
     public void runOpMode(){
-        // Initialize the hardware variables. Note that the strings used here must correspond
-        // to the names assigned during the robot configuration step on the DS or RC devices.
-        frontLeftDrive = hardwareMap.get(DcMotor.class, "lf");
-        backLeftDrive = hardwareMap.get(DcMotor.class, "lb");
-        frontRightDrive = hardwareMap.get(DcMotor.class, "rf");
-        backRightDrive = hardwareMap.get(DcMotor.class, "rb");
-
         intake = hardwareMap.get(DcMotor.class,"Intake");
-        outtake = hardwareMap.get(DcMotor.class,"Outtake");
+        outtake = hardwareMap.get(DcMotor.class,"Outtake1");
+        outtake2 = hardwareMap.get(DcMotor.class, "Outtake2");
         transfer = hardwareMap.get(DcMotor.class,"Transfer");
 
-        //Odo. computer
-        odoComputer = hardwareMap.get(GoBildaPinpointDriver.class, "odoComputer");
-        odoComputer.initialize();
-        odoComputer.resetPosAndIMU();
-
-        telemetry.addLine("===motors and odometry initialized===");
-
-        // ########################################################################################
-        // !!!            IMPORTANT Drive Information. Test your motor directions.            !!!!!
-        // ########################################################################################
-        // Most robots need the motors on one side to be reversed to drive forward.
-        // The motor reversals shown here are for a "direct drive" robot (the wheels turn the same direction as the motor shaft)
-        // If your robot has additional gear reductions or uses a right-angled drive, it's important to ensure
-        // that your motors are turning in the correct direction.  So, start out with the reversals here, BUT
-        // when you first test your robot, push the left joystick forward and observe the direction the wheels turn.
-        // Reverse the direction (flip FORWARD <-> REVERSE ) of any wheel that runs backward
-        // Keep testing until ALL the wheels move the robot forward when you push the left joystick forward.
-        frontLeftDrive.setDirection(DcMotor.Direction.FORWARD);
-        backLeftDrive.setDirection(DcMotor.Direction.FORWARD);
-        frontRightDrive.setDirection(DcMotor.Direction.REVERSE);
-        backRightDrive.setDirection(DcMotor.Direction.REVERSE);
         intake.setDirection(DcMotor.Direction.REVERSE);
-        outtake.setDirection(DcMotor.Direction.FORWARD);
+        outtake.setDirection(DcMotor.Direction.REVERSE);
+        outtake2.setDirection(DcMotor.Direction.FORWARD);
         transfer.setDirection(DcMotorSimple.Direction.REVERSE);
 
         // Initialize Pedro Pathing follower
@@ -124,7 +99,6 @@ public class mainAutoRed extends LinearOpMode {
         }
 
         // Stop all motors when OpMode ends
-        powerAllMotors(0);
     }
 
     public void buildPaths() {
@@ -138,6 +112,8 @@ public class mainAutoRed extends LinearOpMode {
     public void autonomousPathUpdate() {
         switch (pathState) {
             case 0:
+
+                intake.setPower(0.3);
                 // Start following path to target
                 follower.followPath(pathToTarget);
                 setPathState(1);
@@ -146,26 +122,41 @@ public class mainAutoRed extends LinearOpMode {
                 // Wait for path to complete
                 if (!follower.isBusy()) {
                     // Path complete - stop all motors
-                    powerAllMotors(0);
                     telemetry.addData("Status", "Path Complete!");
                     telemetry.addData("Final Position", "X: %.2f, Y: %.2f",
                             follower.getPose().getX(), follower.getPose().getY());
+                    pathTimer.resetTimer();
+                    outtake.setPower(outtakePower);
+                    outtake2.setPower(outtakePower);
                     setPathState(2);
                 }
                 break;
             case 2:
+                if(pathTimer.getElapsedTimeSeconds() >= 3.5){
+                    setPathState(3);
+                    transfer.setPower(transferPower);
+                    pathTimer.resetTimer();
+                }
+                break;
+            case 3:
+                if(pathTimer.getElapsedTimeSeconds() >= 0.15){
+                    setPathState(4);
+                    transfer.setPower(0);
+                }
+                break;
+            case 4:
                 // Shoot preloaded balls - shoot 3 balls one at a time
+
                 if (ballsShot < 3) {
                     shootBallUpdate();
                 } else {
                     // All balls shot, move to next state
                     transfer.setPower(0);
                     outtake.setPower(0);
-                    setPathState(3);
+                    setPathState(5);
                 }
                 break;
-            case 3:
-                // Finished
+            case 5:
                 break;
         }
     }
@@ -173,33 +164,32 @@ public class mainAutoRed extends LinearOpMode {
     public void shootBallUpdate() {
         switch (shootingState) {
             case 0:
-                // Start transfer
-                transfer.setPower(transferPower);
+                // Shoot the ball
                 pathTimer.resetTimer();
                 shootingState = 1;
                 break;
             case 1:
                 // Wait 0.2 seconds for transfer
-                if (pathTimer.getElapsedTimeSeconds() >= 0.5) {
-                    shootingState = 2;
+                if (pathTimer.getElapsedTimeSeconds() >= 2.5) {
+                    // Stop motors
                     transfer.setPower(0);
+                    ballsShot++;
+                    shootingState = 2;  // Reset for next ball
                 }
                 break;
             case 2:
-                // Shoot the ball
-                outtakePower = targetSpeed;
-                outtake.setPower(outtakePower);
+                // Start transfer
+                transfer.setPower(transferPower);
+                intake.setPower(intakePower);
                 pathTimer.resetTimer();
                 shootingState = 3;
                 break;
             case 3:
                 // Wait 0.5 seconds for ball to shoot
-                if (pathTimer.getElapsedTimeSeconds() >= 0.5) {
-                    // Stop motors
+                if (pathTimer.getElapsedTimeSeconds() >= (ballsShot == 1 ? 0.3 : 2)) {
+                    shootingState = 0;
                     transfer.setPower(0);
-                    outtake.setPower(0);
-                    ballsShot++;
-                    shootingState = 0;  // Reset for next ball
+                    intake.setPower(0.5);
                 }
                 break;
         }
@@ -213,17 +203,6 @@ public class mainAutoRed extends LinearOpMode {
             shootingState = 0;
             ballsShot = 0;
         }
-    }
-
-    //stopping all motors
-    public void powerAllMotors(double power){
-        frontRightDrive.setPower(power);
-        frontLeftDrive.setPower(power);
-        backRightDrive.setPower(power);
-        backLeftDrive.setPower(power);
-        intake.setPower(power);
-        outtake.setPower(power);
-        transfer.setPower(power);
     }
 
 }
