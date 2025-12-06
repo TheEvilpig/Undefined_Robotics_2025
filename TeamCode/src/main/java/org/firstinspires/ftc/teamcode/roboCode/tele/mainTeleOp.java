@@ -116,7 +116,6 @@ public class mainTeleOp extends LinearOpMode {
             telemetry.addData("Outtake1 Velocity:",outtake1.getVelocity());
             telemetry.addData("Outtake2 Velocity:",outtake2.getVelocity());
             scanAprilTags();
-
             telemetry.update();
         }
 
