@@ -14,8 +14,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
 import kotlin.math.UMathKt;
 
-@TeleOp(name="Main_TeleOp", group="Linear OpMode")
-public class mainTeleOp extends LinearOpMode {
+@TeleOp(name="Testing", group="Linear OpMode")
+public class testing extends LinearOpMode {
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
     //DcMotorEx is basically like DcMotor but more advanced with more methods and capabilities
@@ -39,10 +39,8 @@ public class mainTeleOp extends LinearOpMode {
     private boolean intakeOn = false;
     private boolean dpadUpPressed = false;
     private boolean allOn = false;
+
     private double rl = .8;
-    long lastTime = System.nanoTime();
-
-
 
     //braking servo positions
     double B2U = 0.19;
@@ -112,14 +110,12 @@ public class mainTeleOp extends LinearOpMode {
 
             updateAuxiliaryMotors();
 
-            scanAprilTags();
             // Show the elapsed game time and wheel power.
             telemetry.addData("Status", "Run Time: " + runtime);
             telemetry.addLine("===Testing intake and outtake===");
-            telemetry.addData("Intake Power:", "%f", intake.getPower());
             telemetry.addData("Outtake Power:","%f", (outtake1.getPower()+outtake2.getPower())/2);
-            telemetry.addData("Outtake1 Velocity:",outtake1.getVelocity(AngleUnit.RADIANS));
-            telemetry.addData("Outtake2 Velocity:",outtake2.getVelocity(AngleUnit.RADIANS));
+            telemetry.addData("Outtake1 Velocity (Rad/s):",outtake1.getVelocity(AngleUnit.RADIANS));
+            telemetry.addData("Outtake2 Velocity (Rad/s):",outtake2.getVelocity(AngleUnit.RADIANS));
             scanAprilTags();
             telemetry.update();
         }
@@ -175,76 +171,10 @@ public class mainTeleOp extends LinearOpMode {
         double transferPower = intakeOn ? 1 : 0;
 
          */
-        double intakePower = gamepad1.x ? 1 :0.0;
-        double transferPower = gamepad1.x ? 1 : 0;
+        double outtakePower = gamepad1.x ? 1 :0.0;
         //outtake toggle
-        if(gamepad1.b&&!bPressed){
-            outtakeOn=!outtakeOn;
-            bPressed=true;
-        }
-        else if(!gamepad1.b)
-            bPressed=false;
-        double outtakePower = outtakeOn ?1:0;
-
-
-        //conditions for 3 artifacts in robot
-
-        if(gamepad1.dpad_up&&!dpadUpPressed){
-            allOn=!allOn;
-            dpadUpPressed=true;
-        }
-        else if(!gamepad1.dpad_up)
-            dpadUpPressed=false;
-
-        if(allOn){
-            intakePower=.9;
-            transferPower=.9;
-            outtakePower= -.44;
-        }
-
-        if(gamepad1.dpad_down) {
-            transferPower = -.44;
-            outtakePower = -.44;
-        }
-
-
-        //using velocity in order to find the right power.
-        /*
-        double outtakeVelocity = gamepad1.b ? calculateOuttakeAngularVelocity():0;
-        if(calculateOuttakeAngularVelocity()!=-1&&intakePower!=1){
-            outtake1.setVelocity(outtakeVelocity,AngleUnit.RADIANS);
-            outtake2.setVelocity(outtakeVelocity,AngleUnit.RADIANS);
-            telemetry.addLine("Using setVelocity()");
-        }
-        else{
-            outtake1.setPower(outtakePower);
-            outtake2.setPower(outtakePower);
-            telemetry.addLine("Using setPower()");
-        }
-         */
-        //outtake1.setPower(outtakePower);
-        //outtake2.setPower(outtakePower);
-
-        outtake1.setVelocity(4 * outtakePower, AngleUnit.RADIANS);
-        outtake2.setVelocity(4 * outtakePower, AngleUnit.RADIANS);
-
-        if (gamepad1.a && !aPressed) {
-            servoPos = !servoPos;
-            aPressed = true;
-        }
-
-        if (!gamepad1.a) aPressed = false;
-
-        if(servoPos){
-            b1.setPosition(B1C);
-            b2.setPosition(B2C);
-        }else {
-            b1.setPosition(B1U);
-            b2.setPosition(B2U);
-        }
-        transfer.setPower(transferPower);
-        intake.setPower(intakePower);
-
+        outtake1.setPower(outtakePower);
+        outtake2.setPower(outtakePower);
     }
 
     /**
@@ -266,20 +196,17 @@ public class mainTeleOp extends LinearOpMode {
             telemetry.addLine("No targets detected from Limelight.");
 
         if(gamepad1.left_bumper && getDistance()!=-1) {
+            //robot too much to the right of the target
+            double k = .03;
             double error = result.getTx();
-            double p =.0002;
-
-            double turnPower= Math.cbrt(p*error);
-            turnPower=Math.max(-.5,Math.min(.5,turnPower));
-
-            if(Math.abs(error)<.5)
+            double turnPower = k*error;
+            turnPower = Math.max(-.4,Math.min(.4,turnPower));
+            if(Math.abs(error)<1)
                 turnPower=0;
             frontLeftDrive.setPower(turnPower);
             backLeftDrive.setPower(turnPower);
             frontRightDrive.setPower(-turnPower);
             backRightDrive.setPower(-turnPower);
-            telemetry.addData("Turn Power:",turnPower);
-            telemetry.addData("Error:",error);
 
         }
 
@@ -307,6 +234,23 @@ public class mainTeleOp extends LinearOpMode {
         return -1;
     }
 
+    /**
+     * Calculates the maximum allowed displacement angle the robot could have from the target it is aiming at.
+     * Robot will rotate left if it is over the angle and align right if it is under the angle
+     * @return max displacement angle robot needs in order to fire accurately.
+     */
+    private double getMaxDisplacementAngle(){
+        YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
+        limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
+        //latest limelight result
+        LLResult result = limeLight.getLatestResult();
+        if(result!=null && result.isValid()) {
+            if(getDistance()==-1)
+                return -1;
+            return Math.atan2(16.0,getDistance());
+        }
+        return -1;
+    }
 
     /**
      * Calculates the perfect angular velocity needed for the outtake system to undergo to launch artifacts into the target.
