@@ -151,11 +151,12 @@ public class mainTeleOp extends LinearOpMode {
         backLeftPower = gamepad1.dpad_left ? 1.0:0;
 */
 
-
-        frontLeftDrive.setPower(frontLeftPower);
-        backLeftDrive.setPower(backLeftPower);
-        frontRightDrive.setPower(frontRightPower);
-        backRightDrive.setPower(backRightPower);
+        if(!(gamepad1.left_bumper && getDistance()!=-1)) {
+            frontLeftDrive.setPower(frontLeftPower);
+            backLeftDrive.setPower(backLeftPower);
+            frontRightDrive.setPower(frontRightPower);
+            backRightDrive.setPower(backRightPower);
+        }
 
     }
 
@@ -267,12 +268,14 @@ public class mainTeleOp extends LinearOpMode {
 
         if(gamepad1.left_bumper && getDistance()!=-1) {
             double error = result.getTx();
-            double p =.0002;
+            double k = 0.13;
+            double p = 0.006;
 
-            double turnPower= Math.cbrt(p*error);
+            double turnPower= p * error + Math.signum(error)*k;
+
             turnPower=Math.max(-.5,Math.min(.5,turnPower));
 
-            if(Math.abs(error)<.5)
+            if(Math.abs(error)<0.5)
                 turnPower=0;
             frontLeftDrive.setPower(turnPower);
             backLeftDrive.setPower(turnPower);
