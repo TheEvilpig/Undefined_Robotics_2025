@@ -47,8 +47,8 @@ public class Constants {
 
 
     public static PinpointConstants localizerConstants = new PinpointConstants()
-            .forwardPodY(6.1)
-            .strafePodX(-2.35)
+            .forwardPodY(HConst.PINPOINT_FORWARD_POD_Y)
+            .strafePodX(HConst.PINPOINT_STRAFE_POD_X)
 
             .distanceUnit(HConst.PINPOINT_DISTANCE_UNIT)
 

@@ -1,6 +1,5 @@
 package org.firstinspires.ftc.teamcode.util;
 
-import com.pedropathing.ftc.localization.Encoder;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
