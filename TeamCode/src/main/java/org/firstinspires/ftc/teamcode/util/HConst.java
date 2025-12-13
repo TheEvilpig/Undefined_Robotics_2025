@@ -44,12 +44,14 @@ public final class HConst {
 
     // aux motors
     public static final String INTAKE = "Intake";
-    public static final String OUTTAKE = "Outtake";
+    public static final String OUTTAKE1 = "Outtake1";
+    public static final String OUTTAKE2 = "Outtake2";
     public static final String TRANSFER = "Transfer";
 
     // aux directions
     public static final DcMotorSimple.Direction INTAKE_DIR = DcMotorSimple.Direction.REVERSE;
-    public static final DcMotorSimple.Direction OUTTAKE_DIR = DcMotorSimple.Direction.REVERSE;
+    public static final DcMotorSimple.Direction OUTTAKE1_DIR = DcMotorSimple.Direction.REVERSE;
+    public static final DcMotorSimple.Direction OUTTAKE2_DIR = DcMotorSimple.Direction.FORWARD;
     public static final DcMotorSimple.Direction TRANSFER_DIR = DcMotorSimple.Direction.REVERSE;
 
     // ----------------------
@@ -91,6 +93,14 @@ public final class HConst {
     // servos
     public static final String R_BRAKE = "rs";
     public static final String L_BRAKE = "ls";
+
+    // servo positions
+    public static final double L_BRAKE_UP = 0.83;
+    public static final double L_BRAKE_DOWN = 1;
+
+    public static final double R_BRAKE_UP = 0.19;
+    public static final double R_BRAKE_DOWN = 0;
+
 
     private HConst() {} // prevent instantiation
 }
