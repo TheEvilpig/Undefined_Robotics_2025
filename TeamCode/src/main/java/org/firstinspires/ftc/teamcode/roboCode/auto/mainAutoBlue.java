@@ -9,20 +9,22 @@ import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 
 @Autonomous(name="Main Autonomous Blue",group = "Autonomous")
 public class mainAutoBlue extends LinearOpMode {
-    DcMotor frontLeftDrive;
-    DcMotor backLeftDrive;
-    DcMotor frontRightDrive;
-    DcMotor backRightDrive;
-    DcMotor intake;
-    DcMotor outtake;
-    DcMotor outtake2;
-    DcMotor transfer;
+    DcMotorEx frontLeftDrive;
+    DcMotorEx backLeftDrive;
+    DcMotorEx frontRightDrive;
+    DcMotorEx backRightDrive;
+    DcMotorEx intake;
+    DcMotorEx outtake;
+    DcMotorEx outtake2;
+    DcMotorEx transfer;
     Follower follower;
     GoBildaPinpointDriver odoComputer;
 
@@ -33,7 +35,7 @@ public class mainAutoBlue extends LinearOpMode {
 
     // Power variables for intake, outtake, and transfer
     private double intakePower = 1;
-    private double outtakePower = 0.955;
+    private double outtakePower = 4.0;
     private double transferPower = 1;
     private double targetSpeed = 0.0;
 
@@ -49,10 +51,10 @@ public class mainAutoBlue extends LinearOpMode {
 
     @Override
     public void runOpMode(){
-        intake = hardwareMap.get(DcMotor.class,"Intake");
-        outtake = hardwareMap.get(DcMotor.class,"Outtake1");
-        outtake2 = hardwareMap.get(DcMotor.class, "Outtake2");
-        transfer = hardwareMap.get(DcMotor.class,"Transfer");
+        intake = hardwareMap.get(DcMotorEx.class,"Intake");
+        outtake = hardwareMap.get(DcMotorEx.class,"Outtake1");
+        outtake2 = hardwareMap.get(DcMotorEx.class, "Outtake2");
+        transfer = hardwareMap.get(DcMotorEx.class,"Transfer");
 
         intake.setDirection(DcMotor.Direction.REVERSE);
         outtake.setDirection(DcMotor.Direction.REVERSE);
@@ -133,8 +135,8 @@ public class mainAutoBlue extends LinearOpMode {
                     telemetry.addData("Final Position", "X: %.2f, Y: %.2f",
                             follower.getPose().getX(), follower.getPose().getY());
                     pathTimer.resetTimer();
-                    outtake.setPower(outtakePower);
-                    outtake2.setPower(outtakePower);
+                    outtake.setVelocity(outtakePower, AngleUnit.RADIANS);
+                    outtake2.setVelocity(outtakePower, AngleUnit.RADIANS);
                     setPathState(2);
                 }
                 break;
@@ -159,7 +161,8 @@ public class mainAutoBlue extends LinearOpMode {
                 } else {
                     // All balls shot, move to next state
                     transfer.setPower(0);
-                    outtake.setPower(0);
+                    outtake.setVelocity(0, AngleUnit.RADIANS);
+                    outtake2.setVelocity(0, AngleUnit.RADIANS);
                     setPathState(5);
                     follower.followPath(pathToTarget1);
                 }
