@@ -219,7 +219,6 @@ public class mainTeleOp extends LinearOpMode {
 
     }
 
-
     /**
      * intitialize, hardwaremap
      */
@@ -314,7 +313,6 @@ public class mainTeleOp extends LinearOpMode {
         }
         return -1;
     }
-
 
     /**
      * Calculates the perfect angular velocity needed for the outtake system to undergo to launch artifacts into the target.

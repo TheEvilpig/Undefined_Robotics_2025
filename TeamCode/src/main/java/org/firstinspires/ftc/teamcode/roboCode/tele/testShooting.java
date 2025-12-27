@@ -1,81 +1,230 @@
-package org.firstinspires.ftc.teamcode.roboCode.tele;
+/*package org.firstinspires.ftc.teamcode.roboCode.tele;
+
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.util.HConst;
 
-@TeleOp(name="Test Shooting", group="Linear OpMode")
+@TeleOp(name="Test Shooting Manual PID Dual", group="Linear OpMode")
 public class testShooting extends LinearOpMode {
 
-    // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
 
-    //DcMotorEx is basically like DcMotor but more advanced with more methods and capabilities
     private DcMotorEx intake, outtake1, outtake2, transfer;
 
-    //Brakes
-    private Servo rb, lb;
-
-    //for brake system
-    private boolean aPressed = false;
-    private boolean servoPos = false;
-
-
-    //
     private boolean bPressed = false;
     private boolean outtakeOn = false;
-
-
     private boolean dpadUpPressed = false;
     private boolean dpadDownPressed = false;
 
-    long lastTime = System.nanoTime();
+    private double targetVelocity = 150;  // rad/s
+    private final double VELOCITY_INCREMENT = 10;
 
-    // Configuration variables
-    private double targetVelocity = 4.0;  // Default velocity in rad/s
-    private final double VELOCITY_INCREMENT = 0.5;  // How much to change per button press
+    // Manual PID constants
+    private final double kP = 0.015;
+    private final double kF = 0.002;
+    private final double kK = 0.2;
+    private final double kI = 0.002;
+
+    // Encoder tracking
+    private int lastPosition = 0;
+    private double lastTime = 0.0;
+    private double lastVelUpdate = 0.0;
+    private double accumulatedDifference = 0;
+
+    // Smoothed velocity
+    private double measuredVelocity = 0;
+
+    // Update interval for velocity (in seconds)
+    private final double VELOCITY_UPDATE_INTERVAL = 0.1;
 
     @Override
-
     public void runOpMode() {
+
         teleInit();
 
         waitForStart();
-
         runtime.reset();
 
-        // run until the end of the match (driver presses STOP)
+        lastPosition = outtake1.getCurrentPosition();
+        lastTime = runtime.seconds();
+        lastVelUpdate = runtime.seconds();
+
         while (opModeIsActive()) {
 
             updateAuxiliaryMotors();
 
-            telemetry.addData("Status", "Run Time: " + runtime);
+            telemetry.addData("Status", "Run Time: " + runtime.seconds());
             telemetry.update();
         }
-
     }
 
-    /**
-     * Drives the intake, transfer, outtake motors and braking system servos.
-     */
-    private void updateAuxiliaryMotors(){
-        double intakePower = gamepad1.x ? 1 :0.0;
-        double transferPower = gamepad1.x ? 1 : 0;
+    private void updateAuxiliaryMotors() {
 
-        //outtake toggle
+        double intakePower = gamepad1.x ? 1 : 0.0;
+        double transferPower = gamepad1.x ? 1 : 0.0;
+
+        // Outtake toggle
         if (gamepad1.b && !bPressed) {
             outtakeOn = !outtakeOn;
             bPressed = true;
-        } else if (!gamepad1.b)
+        } else if (!gamepad1.b) {
             bPressed = false;
+        }
 
-        // Adjust target velocity with dpad up/down
+        // Adjust target velocity
         if (gamepad1.dpad_up && !dpadUpPressed) {
             targetVelocity += VELOCITY_INCREMENT;
+            dpadUpPressed = true;
+        } else if (!gamepad1.dpad_up) dpadUpPressed = false;
+
+        if (gamepad1.dpad_down && !dpadDownPressed) {
+            targetVelocity -= VELOCITY_INCREMENT;
+            if (targetVelocity < 0) targetVelocity = 0;
+            dpadDownPressed = true;
+        } else if (!gamepad1.dpad_down) dpadDownPressed = false;
+
+        // Update velocity only every VELOCITY_UPDATE_INTERVAL
+        double currentTime = runtime.seconds();
+        if (currentTime - lastVelUpdate >= VELOCITY_UPDATE_INTERVAL) {
+            int currentPosition = outtake1.getCurrentPosition();
+            double deltaTime = currentTime - lastTime;
+            if (deltaTime <= 0) deltaTime = 0.001; // prevent divide by zero
+
+            double ticksPerRev = 28;
+            measuredVelocity = (currentPosition - lastPosition) / (ticksPerRev * deltaTime) * 2.0 * Math.PI * -1;
+
+            accumulatedDifference += targetVelocity - measuredVelocity;
+            lastPosition = currentPosition;
+            lastTime = currentTime;
+            lastVelUpdate = currentTime;
+        }
+
+        // Apply manual PID / feedforward if outtake is on
+        if (outtakeOn) {
+            double power = kF * targetVelocity + kP * (targetVelocity - measuredVelocity) + kK + kI * accumulatedDifference;
+            power = Math.max(-1.0, Math.min(1.0, power));
+
+            outtake1.setPower(power);
+            outtake2.setPower(power);
+        } else {
+            outtake1.setPower(0.0);
+            outtake2.setPower(0.0);
+        }
+
+        transfer.setPower(transferPower);
+        intake.setPower(intakePower);
+
+        // Telemetry
+        telemetry.addLine("===Testing intake and outtake===")
+                .addData("Target Velocity (rad/s)", "%.1f", targetVelocity)
+                .addData("Outtake State", outtakeOn ? "ON" : "OFF")
+                .addData("Master Motor Power", outtake1.getPower())
+                .addData("Follower Motor Power", outtake2.getPower())
+                .addData("Measured Velocity (rad/s)", measuredVelocity);
+    }
+
+    private void teleInit() {
+        intake = hardwareMap.get(DcMotorEx.class, HConst.INTAKE);
+        outtake1 = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE1);
+        outtake2 = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE2);
+        transfer = hardwareMap.get(DcMotorEx.class, HConst.TRANSFER);
+        intake.setDirection(HConst.INTAKE_DIR);
+        outtake1.setDirection(HConst.OUTTAKE1_DIR);
+        outtake2.setDirection(HConst.OUTTAKE2_DIR);
+        transfer.setDirection(HConst.TRANSFER_DIR);
+
+        telemetry.addData("Status", "Initialized");
+        telemetry.update();
+    }
+}*/
+
+package org.firstinspires.ftc.teamcode.roboCode.tele;
+
+import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
+import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.util.ElapsedTime;
+
+import org.firstinspires.ftc.teamcode.util.DcMotorSystem;
+import org.firstinspires.ftc.teamcode.util.HConst;
+
+@TeleOp(name = "Test Shooting Manual PID Dual", group = "Linear OpMode")
+public class testShooting extends LinearOpMode {
+
+    private ElapsedTime runtime = new ElapsedTime();
+
+    private DcMotorEx intake, transfer;
+    private DcMotorEx outtake1, outtake2;
+
+    private DcMotorSystem shooter;
+
+    private boolean bPressed = false;
+    private boolean dpadUpPressed = false;
+    private boolean dpadDownPressed = false;
+
+    private double targetVelocity = 150; // rad/s
+    private static final double VELOCITY_INCREMENT = 10;
+
+    @Override
+    public void runOpMode() {
+
+        teleInit();
+
+        shooter = new DcMotorSystem(
+                outtake1,
+                28,     // ticks per rev
+                0.1     // velocity update interval
+        );
+        shooter.addFollower(outtake2);
+
+        shooter.setPID(
+                0.015,  // kP
+                0.002,  // kI
+                0.002,  // kF
+                0.2     // kStatic
+        );
+
+        shooter.setTargetVelocity(targetVelocity);
+
+        waitForStart();
+        runtime.reset();
+
+        while (opModeIsActive()) {
+            updateAuxiliaryMotors();
+            shooter.update();
+
+            telemetry.addData("Status", "Run Time: %.1f", runtime.seconds());
+            telemetry.addData("Target Velocity (rad/s)", shooter.getTargetVelocity());
+            telemetry.addData("Measured Velocity (rad/s)", shooter.getMeasuredVelocity());
+            telemetry.addData("Shooter Enabled", shooter.isEnabled());
+            telemetry.update();
+        }
+    }
+
+    private void updateAuxiliaryMotors() {
+
+        // Intake / transfer (unchanged)
+        double intakePower = gamepad1.x ? 1.0 : 0.0;
+        double transferPower = gamepad1.x ? 1.0 : 0.0;
+
+        intake.setPower(intakePower);
+        transfer.setPower(transferPower);
+
+        // Shooter toggle (same as before)
+        if (gamepad1.b && !bPressed) {
+            if (shooter.isEnabled()) shooter.disable();
+            else shooter.enable();
+            bPressed = true;
+        } else if (!gamepad1.b) {
+            bPressed = false;
+        }
+
+        // Velocity tuning (same increments)
+        if (gamepad1.dpad_up && !dpadUpPressed) {
+            targetVelocity += VELOCITY_INCREMENT;
+            shooter.setTargetVelocity(targetVelocity);
             dpadUpPressed = true;
         } else if (!gamepad1.dpad_up) {
             dpadUpPressed = false;
@@ -83,76 +232,27 @@ public class testShooting extends LinearOpMode {
 
         if (gamepad1.dpad_down && !dpadDownPressed) {
             targetVelocity -= VELOCITY_INCREMENT;
-            if (targetVelocity < 0) targetVelocity = 0;  // Don't go negative
+            if (targetVelocity < 0) targetVelocity = 0;
+            shooter.setTargetVelocity(targetVelocity);
             dpadDownPressed = true;
         } else if (!gamepad1.dpad_down) {
             dpadDownPressed = false;
         }
-
-        // Apply target velocity when outtake is on
-        if (outtakeOn) {
-            outtake1.setVelocity(targetVelocity, AngleUnit.RADIANS);
-            outtake2.setVelocity(targetVelocity, AngleUnit.RADIANS);
-        } else {
-            outtake1.setVelocity(0, AngleUnit.RADIANS);
-            outtake2.setVelocity(0, AngleUnit.RADIANS);
-        }
-
-        // Brake system toggle
-        if (gamepad1.a && !aPressed) {
-            servoPos = !servoPos;
-            aPressed = true;
-        }
-
-        if (!gamepad1.a) aPressed = false;
-
-        if(servoPos){
-            rb.setPosition(HConst.R_BRAKE_DOWN);
-            lb.setPosition(HConst.L_BRAKE_DOWN);
-        }else {
-            rb.setPosition(HConst.R_BRAKE_UP);
-            lb.setPosition(HConst.L_BRAKE_UP);
-        }
-
-        transfer.setPower(transferPower);
-        intake.setPower(intakePower);
-
-        telemetry.addLine("===Testing intake and outtake===");
-        telemetry.addData("Target Velocity (rad/s)", "%.1f", targetVelocity);
-        telemetry.addData("Outtake State", outtakeOn ? "ON" : "OFF");
-        telemetry.addData("Intake Power:", "%f", intake.getPower());
-        telemetry.addData("Outtake Power:","%f", (outtake1.getPower()+outtake2.getPower())/2);
-        telemetry.addData("Outtake1 Velocity:",outtake1.getVelocity(AngleUnit.RADIANS));
-        telemetry.addData("Outtake2 Velocity:",outtake2.getVelocity(AngleUnit.RADIANS));
-
     }
 
+    private void teleInit() {
 
-    /**
-     * intitialize, hardwaremap
-     */
-    private void teleInit(){
-
-        //shooting system
         intake = hardwareMap.get(DcMotorEx.class, HConst.INTAKE);
-
-        //outtake 1 is in same orientation as previous outtake motor
         outtake1 = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE1);
         outtake2 = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE2);
         transfer = hardwareMap.get(DcMotorEx.class, HConst.TRANSFER);
-
-
 
         intake.setDirection(HConst.INTAKE_DIR);
         outtake1.setDirection(HConst.OUTTAKE1_DIR);
         outtake2.setDirection(HConst.OUTTAKE2_DIR);
         transfer.setDirection(HConst.TRANSFER_DIR);
 
-        rb.setPosition(HConst.R_BRAKE_UP);
-        lb.setPosition(HConst.L_BRAKE_UP);
-
-
         telemetry.addData("Status", "Initialized");
+        telemetry.update();
     }
-
 }
