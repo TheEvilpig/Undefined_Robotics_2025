@@ -3,6 +3,8 @@ package org.firstinspires.ftc.teamcode.util;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
+import org.firstinspires.ftc.robotcore.external.Telemetry;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -14,6 +16,8 @@ public class DcMotorSystem {
     // PID + feedforward
     private double kP, kI, kF, kS;
 
+    public int num = 0;
+
     // State
     private double targetVelocity = 0.0; // rad/s
     private double measuredVelocity = 0.0;
@@ -23,10 +27,14 @@ public class DcMotorSystem {
     private int lastPosition = 0;
     private double lastTime = 0.0;
 
+    public double power = 0;
+
     // Config
     private final double ticksPerRev;
     private final double velocityUpdateInterval;
     private double lastVelUpdate = 0.0;
+
+    private Telemetry tele;
 
     private boolean enabled = false;
 
@@ -35,11 +43,13 @@ public class DcMotorSystem {
     public DcMotorSystem(
             DcMotorEx master,
             double ticksPerRev,
-            double velocityUpdateInterval
+            double velocityUpdateInterval,
+            Telemetry t
     ) {
         this.master = master;
         this.ticksPerRev = ticksPerRev;
         this.velocityUpdateInterval = velocityUpdateInterval;
+        tele = t;
 
         lastPosition = master.getCurrentPosition();
         lastTime = timer.seconds();
@@ -105,11 +115,15 @@ public class DcMotorSystem {
 
         measuredVelocity =
                 (currentPosition - lastPosition)
-                        / (ticksPerRev * deltaTime)
+                       / (ticksPerRev * deltaTime)
                         * 2.0 * Math.PI;
+
+
 
         lastPosition = currentPosition;
         lastTime = currentTime;
+
+        num++;
     }
 
     private void setAllPower(double power) {
@@ -117,6 +131,8 @@ public class DcMotorSystem {
         for (DcMotorEx follower : followers) {
             follower.setPower(power);
         }
+
+        this.power = power;
     }
 
     /* ---------------- ACCESSORS ---------------- */

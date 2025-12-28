@@ -144,6 +144,7 @@ package org.firstinspires.ftc.teamcode.roboCode.tele;
 
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
+import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.util.ElapsedTime;
 
@@ -173,15 +174,16 @@ public class testShooting extends LinearOpMode {
         teleInit();
 
         shooter = new DcMotorSystem(
-                outtake1,
+                outtake2,
                 28,     // ticks per rev
-                0.1     // velocity update interval
+                0.1, // velocity update interval
+                telemetry
         );
-        shooter.addFollower(outtake2);
+        shooter.addFollower(outtake1);
 
         shooter.setPID(
                 0.015,  // kP
-                0.002,  // kI
+                0.0008,  // kI
                 0.002,  // kF
                 0.2     // kStatic
         );
@@ -199,6 +201,9 @@ public class testShooting extends LinearOpMode {
             telemetry.addData("Target Velocity (rad/s)", shooter.getTargetVelocity());
             telemetry.addData("Measured Velocity (rad/s)", shooter.getMeasuredVelocity());
             telemetry.addData("Shooter Enabled", shooter.isEnabled());
+            telemetry.addData("pos1", outtake1.getCurrentPosition());
+            telemetry.addData("pos2", outtake2.getCurrentPosition());
+            telemetry.addData("power", shooter.power);
             telemetry.update();
         }
     }
@@ -250,6 +255,7 @@ public class testShooting extends LinearOpMode {
         intake.setDirection(HConst.INTAKE_DIR);
         outtake1.setDirection(HConst.OUTTAKE1_DIR);
         outtake2.setDirection(HConst.OUTTAKE2_DIR);
+
         transfer.setDirection(HConst.TRANSFER_DIR);
 
         telemetry.addData("Status", "Initialized");
