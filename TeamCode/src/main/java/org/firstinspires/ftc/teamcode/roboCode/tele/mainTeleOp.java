@@ -11,6 +11,7 @@ import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
+import org.firstinspires.ftc.teamcode.util.DcMotorSystem;
 import org.firstinspires.ftc.teamcode.util.HConst;
 
 @TeleOp(name="Main_TeleOp", group="Linear OpMode")
@@ -22,6 +23,8 @@ public class mainTeleOp extends LinearOpMode {
     //DcMotorEx is basically like DcMotor but more advanced with more methods and capabilities
     private DcMotorEx frontLeftDrive, backLeftDrive, frontRightDrive, backRightDrive,
             intake, outtake1, outtake2, transfer;
+
+    private DcMotorSystem shooter;
 
     //Brakes
     private Servo rb, lb;
@@ -237,6 +240,14 @@ public class mainTeleOp extends LinearOpMode {
         outtake2 = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE2);
         transfer = hardwareMap.get(DcMotorEx.class, HConst.TRANSFER);
 
+        //shooter system
+        shooter = new DcMotorSystem(
+                outtake2,
+                28,     // ticks per rev
+                0.1, // velocity update interval
+                telemetry
+        );
+
         //braking system
         rb = hardwareMap.get(Servo.class, "rs");
         lb = hardwareMap.get(Servo.class, "ls");
@@ -263,6 +274,15 @@ public class mainTeleOp extends LinearOpMode {
         outtake1.setDirection(HConst.OUTTAKE1_DIR);
         outtake2.setDirection(HConst.OUTTAKE2_DIR);
         transfer.setDirection(HConst.TRANSFER_DIR);
+
+        shooter.addFollower(outtake1);
+        shooter.setPID(
+                0.015,  // kP
+                0.0008,  // kI
+                0.002,  // kF
+                0.2     // kStatic
+        );
+        shooter.setTargetVelocity(0);
 
         rb.setPosition(HConst.R_BRAKE_UP);
         lb.setPosition(HConst.L_BRAKE_UP);

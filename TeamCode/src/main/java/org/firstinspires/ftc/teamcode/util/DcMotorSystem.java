@@ -18,6 +18,10 @@ public class DcMotorSystem {
 
     public int num = 0;
 
+    private static final double A = 84.3661059236;
+    private static final double B = 0.0794062969795;
+    private static final double C = 293.987179162;
+
     // State
     private double targetVelocity = 0.0; // rad/s
     private double measuredVelocity = 0.0;
@@ -134,6 +138,18 @@ public class DcMotorSystem {
 
         this.power = power;
     }
+
+    /* ---------------- UTIL - (may relocate to a different class later) ---------------- */
+
+    public double computeTargetVelocityFromDistance(double x) {
+
+        if (x > 85) {
+            return (Math.sqrt(x - A) / B) + C;
+        } else {
+            return 304.0;
+        }
+    }
+
 
     /* ---------------- ACCESSORS ---------------- */
 
