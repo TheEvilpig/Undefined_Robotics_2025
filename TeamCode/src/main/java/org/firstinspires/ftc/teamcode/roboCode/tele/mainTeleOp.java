@@ -1,11 +1,13 @@
 package org.firstinspires.ftc.teamcode.roboCode.tele;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
+import com.qualcomm.hardware.rev.RevColorSensorV3;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.IMU;
+import com.qualcomm.robotcore.hardware.NormalizedColorSensor;
 import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
@@ -13,9 +15,13 @@ import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.util.DcMotorSystem;
 import org.firstinspires.ftc.teamcode.util.HConst;
+import org.firstinspires.ftc.teamcode.util.*;
+
+import java.util.ArrayList;
 
 @TeleOp(name="Main_TeleOp", group="Linear OpMode")
 public class mainTeleOp extends LinearOpMode {
+    public static String seq;
 
     // Declare OpMode members for each of the 4 motors.
     private ElapsedTime runtime = new ElapsedTime();
@@ -26,8 +32,10 @@ public class mainTeleOp extends LinearOpMode {
 
     private DcMotorSystem shooter;
 
+    private NormalizedColorSensor color;
+
     //Brakes
-    private Servo rb, lb;
+    private Servo rb, lb, hold;
 
     //for brake system
     private boolean aPressed = false;
@@ -48,6 +56,9 @@ public class mainTeleOp extends LinearOpMode {
     private boolean dpadUpPressed = false;
     private boolean allOn = false;
     private double rl = .8;
+    private double alpha = 0;
+
+    //private ArrayList<Artifact> artif;
     long lastTime = System.nanoTime();
 
     //for reversing intake and transfer
@@ -79,32 +90,32 @@ public class mainTeleOp extends LinearOpMode {
     /**
      * Drives the robot chassis motors
      */
-    private void updateDrivetrain(){
+    private void updateDrivetrain() {
         double frontLeftPower;
         double backLeftPower;
         double frontRightPower;
         double backRightPower;
 
-        if(gamepad1.left_bumper && getDistance(latestResult)!=-1) {
+        if (gamepad1.left_bumper && getDistance(latestResult) != -1) {
             double error = latestResult.getTx();
             double k = 0.13;
             double p = 0.006;
 
-            double turnPower= p * error + Math.signum(error)*k;
+            double turnPower = p * error + Math.signum(error) * k;
 
-            turnPower=Math.max(-.5,Math.min(.5,turnPower));
+            turnPower = Math.max(-.5, Math.min(.5, turnPower));
 
-            if(Math.abs(error)<0.5)
-                turnPower=0;
+            if (Math.abs(error) < 0.5)
+                turnPower = 0;
             frontLeftPower = turnPower;
             backLeftPower = turnPower;
             frontRightPower = -turnPower;
             backRightPower = -turnPower;
 
-            telemetry.addData("Turn Power:",turnPower);
-            telemetry.addData("Error:",error);
+            telemetry.addData("Turn Power:", turnPower);
+            telemetry.addData("Error:", error);
 
-        }else{
+        } else {
             double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
             double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
             double rx = gamepad1.right_stick_x * rl;
@@ -130,7 +141,7 @@ public class mainTeleOp extends LinearOpMode {
     /**
      * Drives the intake, transfer, outtake motors and braking system servos.
      */
-    private void updateAuxiliaryMotors(){
+    private void updateAuxiliaryMotors() {
         //intake toggle
         /*
         if(gamepad1.x&&!xPressed){
@@ -143,37 +154,37 @@ public class mainTeleOp extends LinearOpMode {
         double transferPower = intakeOn ? 1 : 0;
 
          */
-        double intakePower = gamepad1.x ? 1 :0.0;
+        double intakePower = gamepad1.x ? 1 : 0.0;
         double transferPower = gamepad1.x ? 1 : 0;
         //outtake toggle
-        if(gamepad1.b&&!bPressed){
-            outtakeOn=!outtakeOn;
-            bPressed=true;
-        }
-        else if(!gamepad1.b)
-            bPressed=false;
-        double outtakePower = outtakeOn ?1:0;
-
+        if (gamepad1.b && !bPressed) {
+            outtakeOn = !outtakeOn;
+            bPressed = true;
+        } else if (!gamepad1.b)
+            bPressed = false;
+        double outtakeVelocity = outtakeOn ?  shooter.computeTargetVelocityFromDistance(getDistance(scanAprilTags())) : 0;
 
         //conditions for 3 artifacts in robot
 
-        if(gamepad1.dpad_up&&!dpadUpPressed){
-            allOn=!allOn;
-            dpadUpPressed=true;
-        }
-        else if(!gamepad1.dpad_up)
-            dpadUpPressed=false;
+        if (gamepad1.dpad_up && !dpadUpPressed) {
+            allOn = !allOn;
+            dpadUpPressed = true;
+        } else if (!gamepad1.dpad_up)
+            dpadUpPressed = false;
 
-        if(allOn){
-            intakePower=.9;
-            transferPower=.9;
-            outtakePower= -.44;
+        if (allOn) {
+            intakePower = .9;
+            transferPower = .9;
         }
 
-        if(gamepad1.dpad_down) {
-            transferPower = -.44;
-            outtakePower = -.44;
+        if (gamepad1.dpad_down) {
+            transferPower = -.22;
         }
+
+        //servo stopper
+        double holdPos = outtakeOn ? HConst.HOLD_INACTIVE:HConst.HOLD_ACTIVE;
+        hold.setPosition(holdPos);
+
 
 
         //using velocity in order to find the right power.
@@ -192,9 +203,9 @@ public class mainTeleOp extends LinearOpMode {
          */
         //outtake1.setPower(outtakePower);
         //outtake2.setPower(outtakePower);
+        outtake1.setVelocity(outtakeVelocity, AngleUnit.RADIANS);
+        outtake2.setVelocity(outtakeVelocity, AngleUnit.RADIANS);
 
-        outtake1.setVelocity(4 * outtakePower, AngleUnit.RADIANS);
-        outtake2.setVelocity(4 * outtakePower, AngleUnit.RADIANS);
 
         if (gamepad1.a && !aPressed) {
             servoPos = !servoPos;
@@ -202,30 +213,38 @@ public class mainTeleOp extends LinearOpMode {
         }
 
         if (!gamepad1.a) aPressed = false;
-
-        if(servoPos){
+    /*
+        if (servoPos) {
             rb.setPosition(HConst.R_BRAKE_DOWN);
             lb.setPosition(HConst.L_BRAKE_DOWN);
-        }else {
+        } else {
             rb.setPosition(HConst.R_BRAKE_UP);
             lb.setPosition(HConst.L_BRAKE_UP);
         }
 
+     */
         transfer.setPower(transferPower);
         intake.setPower(intakePower);
 
         telemetry.addLine("===Testing intake and outtake===");
-        telemetry.addData("Intake Power:", "%f", intake.getPower());
-        telemetry.addData("Outtake Power:","%f", (outtake1.getPower()+outtake2.getPower())/2);
-        telemetry.addData("Outtake1 Velocity:",outtake1.getVelocity(AngleUnit.RADIANS));
-        telemetry.addData("Outtake2 Velocity:",outtake2.getVelocity(AngleUnit.RADIANS));
+        telemetry.addData("Outtake Power:", "%f", (outtake1.getPower() + outtake2.getPower()) / 2);
+        telemetry.addData("Outtake1 Velocity:", outtake1.getVelocity(AngleUnit.RADIANS));
+        telemetry.addData("Outtake2 Velocity:", outtake2.getVelocity(AngleUnit.RADIANS));
+        telemetry.addLine("===Color Detected===");
+        alpha = color.getNormalizedColors().alpha;
+        telemetry.addData("Red:", color.getNormalizedColors().red / alpha);
+        telemetry.addData("Green:", color.getNormalizedColors().green / alpha);
+        telemetry.addData("Blue:", color.getNormalizedColors().blue / alpha);
+
 
     }
 
     /**
      * intitialize, hardwaremap
      */
-    private void teleInit(){
+    private void teleInit() {
+        //artif = new ArrayList<Artifact>();
+        //carolPos = 0;
         //chassis
         frontLeftDrive = hardwareMap.get(DcMotorEx.class, HConst.LEFT_FRONT);
         backLeftDrive = hardwareMap.get(DcMotorEx.class, HConst.LEFT_BACK);
@@ -249,26 +268,43 @@ public class mainTeleOp extends LinearOpMode {
         );
 
         //braking system
+        /*
         rb = hardwareMap.get(Servo.class, "rs");
         lb = hardwareMap.get(Servo.class, "ls");
 
+         */
+
+        //hold
+        hold = hardwareMap.get(Servo.class,HConst.HOLD);
+
+        //sorting system
+        /*
+        carol = hardwareMap.get(Servo.class,"Sort");
+
+         */
+
+        //Color Sensor
+        color = hardwareMap.get(NormalizedColorSensor.class, HConst.COLOR);
+
 
         //April Tags
-        limeLight = hardwareMap.get(Limelight3A.class,"Limelight");
+        limeLight = hardwareMap.get(Limelight3A.class, "Limelight");
 
         //imu
-        imu = hardwareMap.get(IMU.class,"IMU");
+        imu = hardwareMap.get(IMU.class, "IMU");
 
         //directions
         frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
         backRightDrive.setDirection(DcMotor.Direction.FORWARD);
-
+/*
         frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
         backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
+
+ */
 
         intake.setDirection(HConst.INTAKE_DIR);
         outtake1.setDirection(HConst.OUTTAKE1_DIR);
@@ -284,8 +320,11 @@ public class mainTeleOp extends LinearOpMode {
         );
         shooter.setTargetVelocity(0);
 
+        /*
         rb.setPosition(HConst.R_BRAKE_UP);
         lb.setPosition(HConst.L_BRAKE_UP);
+
+         */
 
         limeLight.setPollRateHz(100);
         limeLight.pipelineSwitch(1);
@@ -297,16 +336,25 @@ public class mainTeleOp extends LinearOpMode {
     /**
      * Scans april tags on targets to help in robot allignment for accurate scoring trajectory.
      */
-    private LLResult scanAprilTags(){
+    private LLResult scanAprilTags() {
         YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
         limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
         //latest limelight result
         LLResult result = limeLight.getLatestResult();
-        if(result!=null && result.isValid()){
+        if (result != null && result.isValid()) {
             Pose3D pose = result.getBotpose_MT2();
-            telemetry.addData("Target X (Degrees)",result.getTx());
-            telemetry.addData("Target Y (Degrees)",result.getTy());
-            telemetry.addData("Botpose",pose.toString());
+            telemetry.addData("Target X (Degrees)", result.getTx());
+            telemetry.addData("Target Y (Degrees)", result.getTy());
+            telemetry.addData("Botpose", pose.toString());
+            int id = result.getFiducialResults().get(0).getFiducialId();
+            if (id == 21)
+                seq = "gpp";
+            if (id == 22)
+                seq = "pgp";
+            if (id == 23)
+                seq = "ppg";
+
+
             return result;
         } else
             telemetry.addLine("No targets detected from Limelight.");
@@ -316,9 +364,10 @@ public class mainTeleOp extends LinearOpMode {
 
     /**
      * Calculates the distance the robot is from the target, using data from the limelight
+     *
      * @return the horizontal displacement/distance from the robot to the target.
      */
-    private double getDistance(LLResult result){
+    private double getDistance(LLResult result) {
         //height of target, 30 inches in meters
         double h2 = 0.762;
         //height of limelight in meters, 8 inches
@@ -328,17 +377,45 @@ public class mainTeleOp extends LinearOpMode {
         YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
         limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
         //latest limelight result
-        if(result!=null && result.isValid()){
-            return (h2-h1)/(Math.tan(Math.toRadians(ang +result.getTy())));
+        if (result != null && result.isValid()) {
+            return (h2 - h1) / (Math.tan(Math.toRadians(ang + result.getTy())));
         }
         return -1;
     }
+    /*
+    private void fire(){
+        outtake1.setPower(-44);
+        outtake2.setPower(-.44);
+        transfer.setPower(-.44);
+        sleep(800);
+        outtake1.setPower(0);
+        outtake2.setPower(0);
+        transfer.setPower(0);
+        sleep(100);
+        outtake1.setPower(1.0);
+        outtake2.setPower(1.0);
+        sleep(2200);
+        for(int i =0;i<3;i++){
+            transfer.setPower(.5);
+            intake.setPower(.5);
+            sleep(50);
+            transfer.setPower(0);
+            intake.setPower(0);
+            sleep(300);
+        }
+        outtake1.setPower(0);
+        outtake2.setPower(0);
+    }
+
+     */
 
     /**
      * Calculates the perfect angular velocity needed for the outtake system to undergo to launch artifacts into the target.
      * This does NOT account for air resistance/drag
+     *
      * @return velocity needed for robot to score into target.
      */
+    /*
     private double calculateOuttakeAngularVelocity(LLResult result){
         YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
         limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
@@ -367,4 +444,31 @@ public class mainTeleOp extends LinearOpMode {
         }
         return -1;
     }
+
+     */
+    /*
+    private void fire() {
+        char[] order = seq.toCharArray();
+        for (int i = 0; i < 3;i++) {
+            switch (order[i]) {
+                case 'p':
+            }
+        }
+    }
+
+     */
+
+    /*
+    private void launch(String color) {
+        Artifact.currentDisplacement = carol.getPosition();
+        int index = 0;
+        for (Artifact se : artif) {
+            if (se.getColor().equals(color)) {
+                index = artif.indexOf(se);
+            }
+        }
+
+    }
+
+     */
 }
