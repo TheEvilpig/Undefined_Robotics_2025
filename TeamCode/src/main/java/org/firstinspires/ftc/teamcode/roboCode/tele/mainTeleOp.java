@@ -24,7 +24,7 @@ import java.util.ArrayList;
 public class mainTeleOp extends LinearOpMode {
 
     public static String seq;
-    private ElapsedTime runtime = new ElapsedTime();
+    private final ElapsedTime runtime = new ElapsedTime();
 
     // Declare OpMode members for each of the 4 motors.
     //DcMotorEx is basically like DcMotor but more advanced with more methods and capabilities
@@ -49,12 +49,12 @@ public class mainTeleOp extends LinearOpMode {
     //needed to pair with limelight
     private IMU imu;
 
-    private ToggleButton shooterOn = new ToggleButton(() -> gamepad1.b);
-    private ToggleButton allOn = new ToggleButton(() -> gamepad1.dpad_up);
+    private final ToggleButton shooterOn = new ToggleButton(() -> gamepad1.b);
+    private final ToggleButton allOn = new ToggleButton(() -> gamepad1.dpad_up);
 
     private boolean intaking = false;
 
-    private double rl = .8;
+    private final double rl = .8;
     private double alpha = 0;
 
     //private ArrayList<Artifact> artif;
