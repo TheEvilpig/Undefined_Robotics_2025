@@ -20,48 +20,44 @@ import org.firstinspires.ftc.teamcode.util.*;
 import java.util.ArrayList;
 
 @TeleOp(name="Main_TeleOp", group="Linear OpMode")
-public class mainTeleOp extends LinearOpMode {
-    public static String seq;
 
-    // Declare OpMode members for each of the 4 motors.
+public class mainTeleOp extends LinearOpMode {
+
+    public static String seq;
     private ElapsedTime runtime = new ElapsedTime();
 
+    // Declare OpMode members for each of the 4 motors.
     //DcMotorEx is basically like DcMotor but more advanced with more methods and capabilities
     private DcMotorEx frontLeftDrive, backLeftDrive, frontRightDrive, backRightDrive,
             intake, outtake1, outtake2, transfer;
+
+    private HConst.DriveTrainMode driveTrainMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
 
     private DcMotorSystem shooter;
 
     private NormalizedColorSensor color;
 
-    //Brakes
-    private Servo rb, lb, hold;
+    //Servos
+    private Servo hold;
 
-    //for brake system
-    private boolean aPressed = false;
-    private boolean servoPos = false;
 
     //limelight
     private Limelight3A limeLight;
-    private LLResult latestResult;
+    private LLResult latestResult = null;
+    private double distance = -1;
 
     //needed to pair with limelight
     private IMU imu;
 
-    //
-    private boolean bPressed = false;
-    private boolean outtakeOn = false;
+    private ToggleButton shooterOn = new ToggleButton(() -> gamepad1.b);
+    private ToggleButton allOn = new ToggleButton(() -> gamepad1.dpad_up);
 
+    private boolean intaking = false;
 
-    private boolean dpadUpPressed = false;
-    private boolean allOn = false;
     private double rl = .8;
     private double alpha = 0;
 
     //private ArrayList<Artifact> artif;
-    long lastTime = System.nanoTime();
-
-    //for reversing intake and transfer
 
     @Override
 
@@ -79,7 +75,9 @@ public class mainTeleOp extends LinearOpMode {
 
             updateAuxiliaryMotors();
 
-            latestResult = scanAprilTags();
+            scanAprilTags();
+
+            scanGamepads();
 
             telemetry.addData("Status", "Run Time: " + runtime);
             telemetry.update();
@@ -91,12 +89,14 @@ public class mainTeleOp extends LinearOpMode {
      * Drives the robot chassis motors
      */
     private void updateDrivetrain() {
-        double frontLeftPower;
-        double backLeftPower;
-        double frontRightPower;
-        double backRightPower;
 
-        if (gamepad1.left_bumper && getDistance(latestResult) != -1) {
+        double frontLeftPower = 0;
+        double backLeftPower = 0;
+        double frontRightPower = 0;
+        double backRightPower = 0;
+
+        if (driveTrainMode == HConst.DriveTrainMode.AUTO_TARGET_GOAL) {
+
             double error = latestResult.getTx();
             double k = 0.13;
             double p = 0.006;
@@ -107,15 +107,16 @@ public class mainTeleOp extends LinearOpMode {
 
             if (Math.abs(error) < 0.5)
                 turnPower = 0;
+
+            telemetry.addData("Turn Power:", turnPower);
+            telemetry.addData("Error:", error);
+
             frontLeftPower = turnPower;
             backLeftPower = turnPower;
             frontRightPower = -turnPower;
             backRightPower = -turnPower;
 
-            telemetry.addData("Turn Power:", turnPower);
-            telemetry.addData("Error:", error);
-
-        } else {
+        } else if (driveTrainMode == HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC){
             double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
             double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
             double rx = gamepad1.right_stick_x * rl;
@@ -130,6 +131,35 @@ public class mainTeleOp extends LinearOpMode {
             frontRightPower = (y - x - rx) / denominator;
             backRightPower = (y + x - rx) / denominator;
 
+        } else if (driveTrainMode == HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC){
+            double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
+            double x = gamepad1.left_stick_x;
+            double rx = gamepad1.right_stick_x;
+
+            // This button choice was made so that it is hard to hit on accident,
+            // it can be freely changed based on preference.
+            // The equivalent button is start on Xbox-style controllers.
+            if (gamepad1.options) {
+                imu.resetYaw();
+            }
+
+            double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+
+            // Rotate the movement direction counter to the bot's rotation
+            double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
+            double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+
+            rotX = rotX * 1.1;  // Counteract imperfect strafing
+
+            // Denominator is the largest motor power (absolute value) or 1
+            // This ensures all the powers maintain the same ratio,
+            // but only if at least one is out of the range [-1, 1]
+            double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
+
+            frontLeftPower = (rotY + rotX + rx) / denominator;
+            backLeftPower = (rotY - rotX + rx) / denominator;
+            frontRightPower = (rotY - rotX - rx) / denominator;
+            backRightPower = (rotY + rotX - rx) / denominator;
         }
 
         frontLeftDrive.setPower(frontLeftPower);
@@ -142,37 +172,17 @@ public class mainTeleOp extends LinearOpMode {
      * Drives the intake, transfer, outtake motors and braking system servos.
      */
     private void updateAuxiliaryMotors() {
-        //intake toggle
-        /*
-        if(gamepad1.x&&!xPressed){
-            intakeOn=!intakeOn;
-            xPressed=true;
+
+        double intakePower = intaking ? 1 : 0;
+        double transferPower = intaking ? 1 : 0;
+
+        if(shooterOn.isToggled() && distance >= 0) {
+            shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance));
+        } else {
+            shooter.setTargetVelocity(0);
         }
-        else if(!gamepad1.x)
-            xPressed=false;
-        double intakePower = intakeOn ? 1 :0.0;
-        double transferPower = intakeOn ? 1 : 0;
 
-         */
-        double intakePower = gamepad1.x ? 1 : 0.0;
-        double transferPower = gamepad1.x ? 1 : 0;
-        //outtake toggle
-        if (gamepad1.b && !bPressed) {
-            outtakeOn = !outtakeOn;
-            bPressed = true;
-        } else if (!gamepad1.b)
-            bPressed = false;
-        double outtakeVelocity = outtakeOn ?  shooter.computeTargetVelocityFromDistance(getDistance(scanAprilTags())) : 0;
-
-        //conditions for 3 artifacts in robot
-
-        if (gamepad1.dpad_up && !dpadUpPressed) {
-            allOn = !allOn;
-            dpadUpPressed = true;
-        } else if (!gamepad1.dpad_up)
-            dpadUpPressed = false;
-
-        if (allOn) {
+        if (allOn.isToggled()) {
             intakePower = .9;
             transferPower = .9;
         }
@@ -182,49 +192,12 @@ public class mainTeleOp extends LinearOpMode {
         }
 
         //servo stopper
-        double holdPos = outtakeOn ? HConst.HOLD_INACTIVE:HConst.HOLD_ACTIVE;
+        double holdPos = shooterOn.isToggled() ? HConst.HOLD_INACTIVE : HConst.HOLD_ACTIVE;
+
         hold.setPosition(holdPos);
-
-
-
-        //using velocity in order to find the right power.
-        /*
-        double outtakeVelocity = gamepad1.b ? calculateOuttakeAngularVelocity():0;
-        if(calculateOuttakeAngularVelocity()!=-1&&intakePower!=1){
-            outtake1.setVelocity(outtakeVelocity,AngleUnit.RADIANS);
-            outtake2.setVelocity(outtakeVelocity,AngleUnit.RADIANS);
-            telemetry.addLine("Using setVelocity()");
-        }
-        else{
-            outtake1.setPower(outtakePower);
-            outtake2.setPower(outtakePower);
-            telemetry.addLine("Using setPower()");
-        }
-         */
-        //outtake1.setPower(outtakePower);
-        //outtake2.setPower(outtakePower);
-        outtake1.setVelocity(outtakeVelocity, AngleUnit.RADIANS);
-        outtake2.setVelocity(outtakeVelocity, AngleUnit.RADIANS);
-
-
-        if (gamepad1.a && !aPressed) {
-            servoPos = !servoPos;
-            aPressed = true;
-        }
-
-        if (!gamepad1.a) aPressed = false;
-    /*
-        if (servoPos) {
-            rb.setPosition(HConst.R_BRAKE_DOWN);
-            lb.setPosition(HConst.L_BRAKE_DOWN);
-        } else {
-            rb.setPosition(HConst.R_BRAKE_UP);
-            lb.setPosition(HConst.L_BRAKE_UP);
-        }
-
-     */
         transfer.setPower(transferPower);
         intake.setPower(intakePower);
+        shooter.update();
 
         telemetry.addLine("===Testing intake and outtake===");
         telemetry.addData("Outtake Power:", "%f", (outtake1.getPower() + outtake2.getPower()) / 2);
@@ -267,13 +240,6 @@ public class mainTeleOp extends LinearOpMode {
                 telemetry
         );
 
-        //braking system
-        /*
-        rb = hardwareMap.get(Servo.class, "rs");
-        lb = hardwareMap.get(Servo.class, "ls");
-
-         */
-
         //hold
         hold = hardwareMap.get(Servo.class,HConst.HOLD);
 
@@ -298,13 +264,6 @@ public class mainTeleOp extends LinearOpMode {
         backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         frontRightDrive.setDirection(DcMotor.Direction.FORWARD);
         backRightDrive.setDirection(DcMotor.Direction.FORWARD);
-/*
-        frontLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backLeftDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        frontRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-        backRightDrive.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.BRAKE);
-
- */
 
         intake.setDirection(HConst.INTAKE_DIR);
         outtake1.setDirection(HConst.OUTTAKE1_DIR);
@@ -320,12 +279,6 @@ public class mainTeleOp extends LinearOpMode {
         );
         shooter.setTargetVelocity(0);
 
-        /*
-        rb.setPosition(HConst.R_BRAKE_UP);
-        lb.setPosition(HConst.L_BRAKE_UP);
-
-         */
-
         limeLight.setPollRateHz(100);
         limeLight.pipelineSwitch(1);
         limeLight.start();
@@ -336,17 +289,23 @@ public class mainTeleOp extends LinearOpMode {
     /**
      * Scans april tags on targets to help in robot allignment for accurate scoring trajectory.
      */
-    private LLResult scanAprilTags() {
+    private void scanAprilTags() {
+
         YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
         limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
         //latest limelight result
         LLResult result = limeLight.getLatestResult();
+
         if (result != null && result.isValid()) {
+
             Pose3D pose = result.getBotpose_MT2();
+
             telemetry.addData("Target X (Degrees)", result.getTx());
             telemetry.addData("Target Y (Degrees)", result.getTy());
             telemetry.addData("Botpose", pose.toString());
+
             int id = result.getFiducialResults().get(0).getFiducialId();
+
             if (id == 21)
                 seq = "gpp";
             if (id == 22)
@@ -354,12 +313,14 @@ public class mainTeleOp extends LinearOpMode {
             if (id == 23)
                 seq = "ppg";
 
+            distance = getDistance(result);
+            latestResult = result;
 
-            return result;
-        } else
+        } else {
+            latestResult = null;
+
             telemetry.addLine("No targets detected from Limelight.");
-
-        return null;
+        }
     }
 
     /**
@@ -368,20 +329,40 @@ public class mainTeleOp extends LinearOpMode {
      * @return the horizontal displacement/distance from the robot to the target.
      */
     private double getDistance(LLResult result) {
-        //height of target, 30 inches in meters
-        double h2 = 0.762;
-        //height of limelight in meters, 8 inches
-        double h1 = 0.2032;
-        //mounted angle of limelight in degrees
-        double ang = 23;
+
         YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
         limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
+
         //latest limelight result
-        if (result != null && result.isValid()) {
-            return (h2 - h1) / (Math.tan(Math.toRadians(ang + result.getTy())));
-        }
+        if (result != null && result.isValid())
+            return (HConst.LLH2 - HConst.LLH1) / (Math.tan(Math.toRadians(HConst.LLANGL + result.getTy())));
+
         return -1;
     }
+
+    private void scanGamepads(){
+        //update toggleable buttons
+
+        //gamepad1.b
+        shooterOn.update();
+        //gamepad1.dpadUp
+        allOn.update();
+
+        //drive mode
+        if(gamepad1.left_bumper || latestResult == null)
+            driveTrainMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
+        else if(gamepad1.right_bumper)
+            driveTrainMode = HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC;
+
+        if(gamepad1.y && latestResult != null)
+            driveTrainMode = HConst.DriveTrainMode.AUTO_TARGET_GOAL;
+
+        intaking = gamepad1.x;
+
+
+    }
+
+
     /*
     private void fire(){
         outtake1.setPower(-44);

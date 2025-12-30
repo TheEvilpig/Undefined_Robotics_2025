@@ -23,8 +23,6 @@ public final class HConst {
 
      */
 
-
-
     // ----------------------
     // MOTOR CONSTANTS
     // ----------------------
@@ -86,6 +84,15 @@ public final class HConst {
     // limelight
     public static final String LIMELIGHT = "Limelight";
 
+    //height of target, 30 inches in meters
+    public static final double LLH2 = 0.762;
+
+    //height of limelight in meters, 8 inches
+    public static final double LLH1 = 0.2032;
+
+    //mounted angle of limelight in degrees
+    public static final double LLANGL = 23.0;
+
     // ----------------------
     // SERVO CONSTANTS
     // ----------------------
@@ -106,6 +113,15 @@ public final class HConst {
     public static final double HOLD_ACTIVE = 0;
     public static final double HOLD_INACTIVE = 1;
 
+    // ----------------------
+    // TELEOP ENUMS
+    // ----------------------
+
+    public enum DriveTrainMode {
+        GAMEPAD_ROBOT_CENTRIC,
+        GAMEPAD_FIELD_CENTRIC,
+        AUTO_TARGET_GOAL
+    }
 
     private HConst() {} // prevent instantiation
 }
