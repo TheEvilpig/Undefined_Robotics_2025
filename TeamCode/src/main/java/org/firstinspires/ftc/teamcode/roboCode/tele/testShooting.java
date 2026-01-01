@@ -165,6 +165,7 @@ public class testShooting extends LinearOpMode {
     private boolean dpadUpPressed = false;
     private boolean dpadDownPressed = false;
 
+
     private double targetVelocity = 150; // rad/s
     private static final double VELOCITY_INCREMENT = 10;
 
@@ -176,16 +177,16 @@ public class testShooting extends LinearOpMode {
         shooter = new DcMotorSystem(
                 outtake2,
                 28,     // ticks per rev
-                0.1, // velocity update interval
+                0.01, // velocity update interval
                 telemetry
         );
         shooter.addFollower(outtake1);
 
         shooter.setPID(
-                0.015,  // kP
-                0.0008,  // kI
+                0.001,  // kP
+                0.0004,  // kI
                 0.002,  // kF
-                0.2     // kStatic
+                0.1     // kStatic
         );
 
         shooter.setTargetVelocity(targetVelocity);
@@ -219,6 +220,7 @@ public class testShooting extends LinearOpMode {
 
         // Shooter toggle (same as before)
         if (gamepad1.b && !bPressed) {
+
             if (shooter.isEnabled()) shooter.disable();
             else shooter.enable();
             bPressed = true;
@@ -228,6 +230,7 @@ public class testShooting extends LinearOpMode {
 
         // Velocity tuning (same increments)
         if (gamepad1.dpad_up && !dpadUpPressed) {
+
             targetVelocity += VELOCITY_INCREMENT;
             shooter.setTargetVelocity(targetVelocity);
             dpadUpPressed = true;

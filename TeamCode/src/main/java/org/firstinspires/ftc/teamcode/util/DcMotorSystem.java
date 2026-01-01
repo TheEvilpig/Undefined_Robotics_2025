@@ -143,10 +143,10 @@ public class DcMotorSystem {
 
     public double computeTargetVelocityFromDistance(double x) {
 
-        if (x > 85) {
+        if (x > 91) {
             return (Math.sqrt(x - A) / B) + C;
         } else {
-            return 304.0;
+            return 330.0;
         }
     }
 

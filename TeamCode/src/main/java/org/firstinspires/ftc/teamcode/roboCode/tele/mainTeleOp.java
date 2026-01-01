@@ -57,6 +57,10 @@ public class mainTeleOp extends LinearOpMode {
     private final double rl = .8;
     private double alpha = 0;
 
+    // Turning PID
+    private double lastError = 0;
+    private double lastTime = 0;
+
     //private ArrayList<Artifact> artif;
 
     @Override
@@ -98,10 +102,15 @@ public class mainTeleOp extends LinearOpMode {
         if (driveTrainMode == HConst.DriveTrainMode.AUTO_TARGET_GOAL) {
 
             double error = latestResult.getTx();
-            double k = 0.13;
+            double k = 0.12;
             double p = 0.006;
+            double d = 0.001;
 
-            double turnPower = p * error + Math.signum(error) * k;
+            double currentTime = runtime.seconds();
+            double deltaTime = currentTime - lastTime;
+            double derivative = deltaTime > 0 ? (error - lastError) / deltaTime : 0;
+
+            double turnPower = p * error + d * derivative + Math.signum(error) * k;
 
             turnPower = Math.max(-.5, Math.min(.5, turnPower));
 
@@ -110,11 +119,16 @@ public class mainTeleOp extends LinearOpMode {
 
             telemetry.addData("Turn Power:", turnPower);
             telemetry.addData("Error:", error);
+            telemetry.addData("PID Derivative:", derivative);
+            telemetry.addData("PID Delta Time:", deltaTime);
 
             frontLeftPower = turnPower;
             backLeftPower = turnPower;
             frontRightPower = -turnPower;
             backRightPower = -turnPower;
+
+            lastError = error;
+            lastTime = currentTime;
 
         } else if (driveTrainMode == HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC){
             double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
@@ -201,13 +215,21 @@ public class mainTeleOp extends LinearOpMode {
 
         telemetry.addLine("===Testing intake and outtake===");
         telemetry.addData("Outtake Power:", "%f", (outtake1.getPower() + outtake2.getPower()) / 2);
-        telemetry.addData("Outtake1 Velocity:", outtake1.getVelocity(AngleUnit.RADIANS));
-        telemetry.addData("Outtake2 Velocity:", outtake2.getVelocity(AngleUnit.RADIANS));
+
+        telemetry.addData("Outtake Velocity:", shooter.getMeasuredVelocity());
+        telemetry.addData("Outtake Target Velocity:", shooter.getTargetVelocity());
         telemetry.addLine("===Color Detected===");
         alpha = color.getNormalizedColors().alpha;
         telemetry.addData("Red:", color.getNormalizedColors().red / alpha);
         telemetry.addData("Green:", color.getNormalizedColors().green / alpha);
         telemetry.addData("Blue:", color.getNormalizedColors().blue / alpha);
+        telemetry.addData("dist: ", distance);
+        /*
+        telemetry.addData("shooter is toggled: ", shooterOn.isToggled());
+        telemetry.addData("dist: ", distance);
+        telemetry.addData("t velocity: ", shooter.computeTargetVelocityFromDistance(distance));
+        telemetry.addData("enabled: ", shooter.isEnabled());
+         */
 
 
     }
@@ -236,7 +258,7 @@ public class mainTeleOp extends LinearOpMode {
         shooter = new DcMotorSystem(
                 outtake2,
                 28,     // ticks per rev
-                0.1, // velocity update interval
+                0.01, // velocity update interval
                 telemetry
         );
 
@@ -272,12 +294,13 @@ public class mainTeleOp extends LinearOpMode {
 
         shooter.addFollower(outtake1);
         shooter.setPID(
-                0.015,  // kP
-                0.0008,  // kI
-                0.002,  // kF
-                0.2     // kStatic
+                0.001,  // kP
+                0.0015,  // kI
+                0.00178,  // kF
+                0.1     // kStatic
         );
         shooter.setTargetVelocity(0);
+        shooter.enable();
 
         limeLight.setPollRateHz(100);
         limeLight.pipelineSwitch(1);
@@ -313,7 +336,7 @@ public class mainTeleOp extends LinearOpMode {
             if (id == 23)
                 seq = "ppg";
 
-            distance = getDistance(result);
+            distance = getDistance(result) * 39.3701 + 8;
             latestResult = result;
 
         } else {
