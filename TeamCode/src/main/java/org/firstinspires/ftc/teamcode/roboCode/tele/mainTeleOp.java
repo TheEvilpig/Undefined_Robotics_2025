@@ -26,19 +26,30 @@ public class mainTeleOp extends LinearOpMode {
     public static String seq;
     private final ElapsedTime runtime = new ElapsedTime();
 
+    private double seqTime = 0;
+
     // Declare OpMode members for each of the 4 motors.
     //DcMotorEx is basically like DcMotor but more advanced with more methods and capabilities
     private DcMotorEx frontLeftDrive, backLeftDrive, frontRightDrive, backRightDrive,
             intake, outtake1, outtake2, transfer;
 
     private HConst.DriveTrainMode driveTrainMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
+    private HConst.DriveTrainMode defaultMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
 
     private DcMotorSystem shooter;
 
     private NormalizedColorSensor color;
 
     //Servos
+
     private Servo hold;
+
+    private boolean holding = true;
+
+    // Shooting system
+    private boolean shooterActive = false;
+
+    private final ElapsedTime shootTimer = new ElapsedTime();
 
 
     //limelight
@@ -49,8 +60,11 @@ public class mainTeleOp extends LinearOpMode {
     //needed to pair with limelight
     private IMU imu;
 
-    private final ToggleButton shooterOn = new ToggleButton(() -> gamepad1.b);
+    private final ToggleButton shooterOn = new ToggleButton(() -> gamepad1.dpad_left);
     private final ToggleButton allOn = new ToggleButton(() -> gamepad1.dpad_up);
+    private final TriggerButton shootTrigger =
+            new TriggerButton(() -> gamepad1.right_trigger, 0.5);
+
 
     private boolean intaking = false;
 
@@ -86,151 +100,6 @@ public class mainTeleOp extends LinearOpMode {
             telemetry.addData("Status", "Run Time: " + runtime);
             telemetry.update();
         }
-
-    }
-
-    /**
-     * Drives the robot chassis motors
-     */
-    private void updateDrivetrain() {
-
-        double frontLeftPower = 0;
-        double backLeftPower = 0;
-        double frontRightPower = 0;
-        double backRightPower = 0;
-
-        if (driveTrainMode == HConst.DriveTrainMode.AUTO_TARGET_GOAL) {
-
-            double error = latestResult.getTx();
-            double k = 0.12;
-            double p = 0.006;
-            double d = 0.001;
-
-            double currentTime = runtime.seconds();
-            double deltaTime = currentTime - lastTime;
-            double derivative = deltaTime > 0 ? (error - lastError) / deltaTime : 0;
-
-            double turnPower = p * error + d * derivative + Math.signum(error) * k;
-
-            turnPower = Math.max(-.5, Math.min(.5, turnPower));
-
-            if (Math.abs(error) < 0.5)
-                turnPower = 0;
-
-            telemetry.addData("Turn Power:", turnPower);
-            telemetry.addData("Error:", error);
-            telemetry.addData("PID Derivative:", derivative);
-            telemetry.addData("PID Delta Time:", deltaTime);
-
-            frontLeftPower = turnPower;
-            backLeftPower = turnPower;
-            frontRightPower = -turnPower;
-            backRightPower = -turnPower;
-
-            lastError = error;
-            lastTime = currentTime;
-
-        } else if (driveTrainMode == HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC){
-            double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
-            double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
-            double rx = gamepad1.right_stick_x * rl;
-
-            // Denominator is the largest motor power (absolute value) or 1
-            // This ensures all the powers maintain the same ratio,
-            // but only if at least one is out of the range [-1, 1]
-            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
-
-            frontLeftPower = (y + x + rx) / denominator;
-            backLeftPower = (y - x + rx) / denominator;
-            frontRightPower = (y - x - rx) / denominator;
-            backRightPower = (y + x - rx) / denominator;
-
-        } else if (driveTrainMode == HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC){
-            double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
-            double x = gamepad1.left_stick_x;
-            double rx = gamepad1.right_stick_x;
-
-            // This button choice was made so that it is hard to hit on accident,
-            // it can be freely changed based on preference.
-            // The equivalent button is start on Xbox-style controllers.
-            if (gamepad1.options) {
-                imu.resetYaw();
-            }
-
-            double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
-
-            // Rotate the movement direction counter to the bot's rotation
-            double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
-            double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
-
-            rotX = rotX * 1.1;  // Counteract imperfect strafing
-
-            // Denominator is the largest motor power (absolute value) or 1
-            // This ensures all the powers maintain the same ratio,
-            // but only if at least one is out of the range [-1, 1]
-            double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
-
-            frontLeftPower = (rotY + rotX + rx) / denominator;
-            backLeftPower = (rotY - rotX + rx) / denominator;
-            frontRightPower = (rotY - rotX - rx) / denominator;
-            backRightPower = (rotY + rotX - rx) / denominator;
-        }
-
-        frontLeftDrive.setPower(frontLeftPower);
-        backLeftDrive.setPower(backLeftPower);
-        frontRightDrive.setPower(frontRightPower);
-        backRightDrive.setPower(backRightPower);
-    }
-
-    /**
-     * Drives the intake, transfer, outtake motors and braking system servos.
-     */
-    private void updateAuxiliaryMotors() {
-
-        double intakePower = intaking ? 1 : 0;
-        double transferPower = intaking ? 1 : 0;
-
-        if(shooterOn.isToggled() && distance >= 0) {
-            shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance));
-        } else {
-            shooter.setTargetVelocity(0);
-        }
-
-        if (allOn.isToggled()) {
-            intakePower = .9;
-            transferPower = .9;
-        }
-
-        if (gamepad1.dpad_down) {
-            transferPower = -.22;
-        }
-
-        //servo stopper
-        double holdPos = shooterOn.isToggled() ? HConst.HOLD_INACTIVE : HConst.HOLD_ACTIVE;
-
-        hold.setPosition(holdPos);
-        transfer.setPower(transferPower);
-        intake.setPower(intakePower);
-        shooter.update();
-
-        telemetry.addLine("===Testing intake and outtake===");
-        telemetry.addData("Outtake Power:", "%f", (outtake1.getPower() + outtake2.getPower()) / 2);
-
-        telemetry.addData("Outtake Velocity:", shooter.getMeasuredVelocity());
-        telemetry.addData("Outtake Target Velocity:", shooter.getTargetVelocity());
-        telemetry.addLine("===Color Detected===");
-        alpha = color.getNormalizedColors().alpha;
-        telemetry.addData("Red:", color.getNormalizedColors().red / alpha);
-        telemetry.addData("Green:", color.getNormalizedColors().green / alpha);
-        telemetry.addData("Blue:", color.getNormalizedColors().blue / alpha);
-        telemetry.addData("dist: ", distance);
-        /*
-        telemetry.addData("shooter is toggled: ", shooterOn.isToggled());
-        telemetry.addData("dist: ", distance);
-        telemetry.addData("t velocity: ", shooter.computeTargetVelocityFromDistance(distance));
-        telemetry.addData("enabled: ", shooter.isEnabled());
-         */
-
 
     }
 
@@ -294,10 +163,10 @@ public class mainTeleOp extends LinearOpMode {
 
         shooter.addFollower(outtake1);
         shooter.setPID(
-                0.001,  // kP
-                0.0015,  // kI
-                0.00178,  // kF
-                0.1     // kStatic
+                0.0015,  // kP
+                0.002,  // kI
+                0.00171,  // kF
+                0.12     // kStatic
         );
         shooter.setTargetVelocity(0);
         shooter.enable();
@@ -307,6 +176,157 @@ public class mainTeleOp extends LinearOpMode {
         limeLight.start();
 
         telemetry.addData("Status", "Initialized");
+    }
+
+    /**
+     * Drives the robot chassis motors
+     */
+    private void updateDrivetrain() {
+
+        double frontLeftPower = 0;
+        double backLeftPower = 0;
+        double frontRightPower = 0;
+        double backRightPower = 0;
+
+        if (driveTrainMode == HConst.DriveTrainMode.AUTO_TARGET_GOAL) {
+
+            double error = latestResult.getTx();
+            double k = 0.125;
+            double p = 0.007;
+            double d = 0.003;
+
+            double currentTime = runtime.seconds();
+            double deltaTime = currentTime - lastTime;
+            double derivative = deltaTime > 0 ? (error - lastError) / deltaTime : 0;
+
+            double turnPower = p * error + d * derivative + Math.signum(error) * k;
+
+            turnPower = Math.max(-.5, Math.min(.5, turnPower));
+
+            if (Math.abs(error) < 0.55)
+                turnPower = 0;
+
+            telemetry.addData("Turn Power:", turnPower);
+            telemetry.addData("Error:", error);
+            telemetry.addData("PID Derivative:", derivative);
+            telemetry.addData("PID Delta Time:", deltaTime);
+
+            frontLeftPower = turnPower;
+            backLeftPower = turnPower;
+            frontRightPower = -turnPower;
+            backRightPower = -turnPower;
+
+            lastError = error;
+            lastTime = currentTime;
+
+        } else if (driveTrainMode == HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC){
+            double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
+            double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
+            double rx = gamepad1.right_stick_x * rl;
+
+            // Denominator is the largest motor power (absolute value) or 1
+            // This ensures all the powers maintain the same ratio,
+            // but only if at least one is out of the range [-1, 1]
+            double denominator = Math.max(Math.abs(y) + Math.abs(x) + Math.abs(rx), 1);
+
+            frontLeftPower = (y + x + rx) / denominator;
+            backLeftPower = (y - x + rx) / denominator;
+            frontRightPower = (y - x - rx) / denominator;
+            backRightPower = (y + x - rx) / denominator;
+
+        } else if (driveTrainMode == HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC){
+            double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
+            double x = gamepad1.left_stick_x;
+            double rx = gamepad1.right_stick_x;
+
+            // This button choice was made so that it is hard to hit on accident,
+            // it can be freely changed based on preference.
+            // The equivalent button is start on Xbox-style controllers.
+            if (gamepad1.options) {
+                imu.resetYaw();
+            }
+
+            double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+
+            // Rotate the movement direction counter to the bot's rotation
+            double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
+            double rotY = x * Math.sin(-botHeading) + y * Math.cos(-botHeading);
+
+            rotX = rotX * 1.1;  // Counteract imperfect strafing
+
+            // Denominator is the largest motor power (absolute value) or 1
+            // This ensures all the powers maintain the same ratio,
+            // but only if at least one is out of the range [-1, 1]
+            double denominator = Math.max(Math.abs(rotY) + Math.abs(rotX) + Math.abs(rx), 1);
+
+            frontLeftPower = (rotY + rotX + rx) / denominator;
+            backLeftPower = (rotY - rotX + rx) / denominator;
+            frontRightPower = (rotY - rotX - rx) / denominator;
+            backRightPower = (rotY + rotX - rx) / denominator;
+        } else if (driveTrainMode == HConst.DriveTrainMode.STOP){
+
+            frontLeftPower = 0;
+            backLeftPower = 0;
+            frontRightPower = 0;
+            backRightPower = 0;
+        }
+
+        frontLeftDrive.setPower(frontLeftPower);
+        backLeftDrive.setPower(backLeftPower);
+        frontRightDrive.setPower(frontRightPower);
+        backRightDrive.setPower(backRightPower);
+    }
+
+    /**
+     * Drives the intake, transfer, outtake motors and braking system servos.
+     */
+    private void updateAuxiliaryMotors() {
+
+        double intakePower = intaking ? 1 : 0;
+        double transferPower = intaking ? 0.3 : 0;
+
+        if((shooterActive) && distance >= 0) {
+            shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance));
+        } else {
+            shooter.setTargetVelocity(0);
+        }
+
+        if (allOn.isToggled()) {
+            intakePower = .9;
+            transferPower = .9;
+        }
+
+        if (gamepad1.dpad_down) {
+            transferPower = -.22;
+        }
+
+        //servo stopper
+        double holdPos = holding ? HConst.HOLD_ACTIVE : HConst.HOLD_INACTIVE;
+
+        hold.setPosition(holdPos);
+        transfer.setPower(transferPower);
+        intake.setPower(intakePower);
+        shooter.update();
+
+        telemetry.addLine("===Testing intake and outtake===");
+        telemetry.addData("Outtake Power:", "%f", (outtake1.getPower() + outtake2.getPower()) / 2);
+
+        telemetry.addData("Outtake Velocity:", shooter.getMeasuredVelocity());
+        telemetry.addData("Outtake Target Velocity:", shooter.getTargetVelocity());
+        telemetry.addLine("===Color Detected===");
+        alpha = color.getNormalizedColors().alpha;
+        telemetry.addData("Red:", color.getNormalizedColors().red / alpha);
+        telemetry.addData("Green:", color.getNormalizedColors().green / alpha);
+        telemetry.addData("Blue:", color.getNormalizedColors().blue / alpha);
+        telemetry.addData("dist: ", distance);
+        /*
+        telemetry.addData("shooter is toggled: ", shooterOn.isToggled());
+        telemetry.addData("dist: ", distance);
+        telemetry.addData("t velocity: ", shooter.computeTargetVelocityFromDistance(distance));
+        telemetry.addData("enabled: ", shooter.isEnabled());
+         */
+
+
     }
 
     /**
@@ -336,7 +356,7 @@ public class mainTeleOp extends LinearOpMode {
             if (id == 23)
                 seq = "ppg";
 
-            distance = getDistance(result) * 39.3701 + 8;
+            distance = getDistance(result) * 39.3701 + 7;
             latestResult = result;
 
         } else {
@@ -344,6 +364,58 @@ public class mainTeleOp extends LinearOpMode {
 
             telemetry.addLine("No targets detected from Limelight.");
         }
+    }
+
+    /**
+     * Scans gamepad to update teleop controlls
+     */
+    private void scanGamepads(){
+        //update toggleable buttons
+
+        //gamepad1.dpadLeft
+        shooterOn.update();
+        //gamepad1.dpadUp
+        allOn.update();
+
+        //auto shooter
+        shooterActive = shooterOn.isToggled();
+
+        if(!shootTrigger.isPressed()){
+            seqTime = runtime.seconds();
+        } else {
+            shooterActive = true;
+            intaking = true;
+
+            if(runtime.seconds() - seqTime < 0.2){
+                driveTrainMode = HConst.DriveTrainMode.STOP;
+            } else{
+                driveTrainMode = HConst.DriveTrainMode.AUTO_TARGET_GOAL;
+            }
+
+            if(runtime.seconds() - seqTime > 1.5){
+                holding = false;
+            } else{
+                holding = true;
+            }
+        }
+
+        //drive mode
+        driveTrainMode = defaultMode;
+
+        if(gamepad1.left_bumper)
+            defaultMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
+        else if(gamepad1.right_bumper)
+            defaultMode = HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC;
+
+        if(latestResult == null){
+            driveTrainMode = defaultMode;
+        }
+
+
+        //intake / transfer
+
+        intaking = gamepad1.x;
+
     }
 
     /**
@@ -363,93 +435,6 @@ public class mainTeleOp extends LinearOpMode {
         return -1;
     }
 
-    private void scanGamepads(){
-        //update toggleable buttons
-
-        //gamepad1.b
-        shooterOn.update();
-        //gamepad1.dpadUp
-        allOn.update();
-
-        //drive mode
-        if(gamepad1.left_bumper || latestResult == null)
-            driveTrainMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
-        else if(gamepad1.right_bumper)
-            driveTrainMode = HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC;
-
-        if(gamepad1.y && latestResult != null)
-            driveTrainMode = HConst.DriveTrainMode.AUTO_TARGET_GOAL;
-
-        intaking = gamepad1.x;
-
-
-    }
-
-
-    /*
-    private void fire(){
-        outtake1.setPower(-44);
-        outtake2.setPower(-.44);
-        transfer.setPower(-.44);
-        sleep(800);
-        outtake1.setPower(0);
-        outtake2.setPower(0);
-        transfer.setPower(0);
-        sleep(100);
-        outtake1.setPower(1.0);
-        outtake2.setPower(1.0);
-        sleep(2200);
-        for(int i =0;i<3;i++){
-            transfer.setPower(.5);
-            intake.setPower(.5);
-            sleep(50);
-            transfer.setPower(0);
-            intake.setPower(0);
-            sleep(300);
-        }
-        outtake1.setPower(0);
-        outtake2.setPower(0);
-    }
-
-     */
-
-    /**
-     * Calculates the perfect angular velocity needed for the outtake system to undergo to launch artifacts into the target.
-     * This does NOT account for air resistance/drag
-     *
-     * @return velocity needed for robot to score into target.
-     */
-    /*
-    private double calculateOuttakeAngularVelocity(LLResult result){
-        YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
-        limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
-
-        double dist = getDistance(result);
-
-        if(result!=null && result.isValid()) {
-            if(dist == -1)
-                return -1;
-            //radius of outtake wheel
-            double r = 1;
-            //height of target, 40 inches in meters
-            double h2 = 1.016;
-            //height of outtake launch
-            double hT = 0;
-            //displacement of limelight from outtake, assuming they are both in the middle
-            double xO = 0;
-            //angle of artifact firing from outtake, in degrees.
-            double fire = 0;
-            //numerator of final equation
-            double num = 9.8*(Math.pow(getDistance(result)+xO,2));
-            double denom = 2*Math.cos(Math.toRadians(fire))*((hT-h2)+(dist+xO)*Math.tan(Math.toRadians(fire)));
-            double linearVel = Math.sqrt(num/denom);
-
-            return linearVel/r;
-        }
-        return -1;
-    }
-
-     */
     /*
     private void fire() {
         char[] order = seq.toCharArray();

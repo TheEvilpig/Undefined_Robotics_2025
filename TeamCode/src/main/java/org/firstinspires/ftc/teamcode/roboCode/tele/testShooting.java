@@ -183,8 +183,8 @@ public class testShooting extends LinearOpMode {
         shooter.addFollower(outtake1);
 
         shooter.setPID(
-                0.001,  // kP
-                0.0004,  // kI
+                0.0015,  // kP
+                0.0005,  // kI
                 0.002,  // kF
                 0.1     // kStatic
         );

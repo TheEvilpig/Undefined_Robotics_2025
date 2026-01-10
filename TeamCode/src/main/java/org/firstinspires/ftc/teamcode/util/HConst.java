@@ -120,7 +120,8 @@ public final class HConst {
     public enum DriveTrainMode {
         GAMEPAD_ROBOT_CENTRIC,
         GAMEPAD_FIELD_CENTRIC,
-        AUTO_TARGET_GOAL
+        AUTO_TARGET_GOAL,
+        STOP
     }
 
     private HConst() {} // prevent instantiation
