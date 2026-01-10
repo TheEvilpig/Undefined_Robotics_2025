@@ -6,35 +6,43 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.hardware.limelightvision.LLResult;
+import com.qualcomm.hardware.limelightvision.Limelight3A;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
-import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
+import com.qualcomm.robotcore.hardware.IMU;
 
 import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
+import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
+import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
+import org.firstinspires.ftc.teamcode.util.DcMotorSystem;
+import org.firstinspires.ftc.teamcode.util.HConst;
 
-
-@Disabled
 @Autonomous(name="Main Autonomous Red",group = "Autonomous")
 public class mainAutoRed extends LinearOpMode {
-    DcMotorEx frontLeftDrive;
-    DcMotorEx backLeftDrive;
-    DcMotorEx frontRightDrive;
-    DcMotorEx backRightDrive;
-    DcMotorEx intake;
-    DcMotorEx outtake;
-    DcMotorEx outtake2;
-    DcMotorEx transfer;
-    Follower follower;
-    GoBildaPinpointDriver odoComputer;
+    private DcMotorEx frontLeftDrive;
+    private DcMotorEx backLeftDrive;
+    private DcMotorEx frontRightDrive;
+    private DcMotorEx backRightDrive;
+    private DcMotorEx intake, outtake1, outtake2;
+    private DcMotorSystem shooter;
+    private DcMotorEx transfer;
+    private Follower follower;
+    public static String seq;
+    private IMU imu;
+    private Limelight3A limeLight;
+    private LLResult latestResult = null;
+    private GoBildaPinpointDriver odoComputer;
 
     private Timer pathTimer;
     private int pathState;
     private int shootingState = 0;
     private int ballsShot = 0;
+    private double distance = -1;
 
     // Power variables for intake, outtake, and transfer
     private double intakePower = 1;
@@ -56,15 +64,29 @@ public class mainAutoRed extends LinearOpMode {
     @Override
     public void runOpMode(){
         intake = hardwareMap.get(DcMotorEx.class,"Intake");
-        outtake = hardwareMap.get(DcMotorEx.class,"Outtake1");
+        outtake1 = hardwareMap.get(DcMotorEx.class,"Outtake1");
         outtake2 = hardwareMap.get(DcMotorEx.class, "Outtake2");
         transfer = hardwareMap.get(DcMotorEx.class,"Transfer");
 
-        intake.setDirection(DcMotor.Direction.REVERSE);
-        outtake.setDirection(DcMotor.Direction.REVERSE);
-        outtake2.setDirection(DcMotor.Direction.FORWARD);
-        transfer.setDirection(DcMotorSimple.Direction.REVERSE);
+        intake.setDirection(HConst.INTAKE_DIR);
+        outtake1.setDirection(HConst.OUTTAKE1_DIR);
+        outtake2.setDirection(HConst.OUTTAKE2_DIR);
+        transfer.setDirection(HConst.TRANSFER_DIR);
 
+        shooter = new DcMotorSystem(
+                outtake2,
+                28,     // ticks per rev
+                0.1, // velocity update interval
+                telemetry
+        );
+        shooter.addFollower(outtake1);
+        shooter.setPID(
+                0.015,  // kP
+                0.0008,  // kI
+                0.002,  // kF
+                0.2     // kStatic
+        );
+        shooter.setTargetVelocity(0);
         // Initialize Pedro Pathing follower
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(startPose);
@@ -92,7 +114,8 @@ public class mainAutoRed extends LinearOpMode {
         while(opModeIsActive()){
             // Update follower
             follower.update();
-
+            // Update limelight
+            scanAprilTags();
             // Update autonomous path state
             autonomousPathUpdate();
 
@@ -139,13 +162,15 @@ public class mainAutoRed extends LinearOpMode {
                     telemetry.addData("Final Position", "X: %.2f, Y: %.2f",
                             follower.getPose().getX(), follower.getPose().getY());
                     pathTimer.resetTimer();
-                    outtake.setVelocity(outtakePower, AngleUnit.RADIANS);
-                    outtake2.setVelocity(outtakePower, AngleUnit.RADIANS);
+                    // need to implement auto turning
+                    shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance));
+
                     setPathState(2);
                 }
                 break;
             case 2:
                 if(pathTimer.getElapsedTimeSeconds() >= 3.5){
+                    shooter.setTargetVelocity(0);
                     setPathState(3);
                     transfer.setPower(transferPower);
                     pathTimer.resetTimer();
@@ -165,8 +190,7 @@ public class mainAutoRed extends LinearOpMode {
                 } else {
                     // All balls shot, move to next state
                     transfer.setPower(0);
-                    outtake.setVelocity(0, AngleUnit.RADIANS);
-                    outtake2.setVelocity(0, AngleUnit.RADIANS);
+                    shooter.setTargetVelocity(0.0);
                     setPathState(5);
                     follower.followPath(pathToTarget1);
                 }
@@ -223,6 +247,60 @@ public class mainAutoRed extends LinearOpMode {
             shootingState = 0;
             ballsShot = 0;
         }
+    }
+
+    /**
+     * Scans april tags on targets to help in robot allignment for accurate scoring trajectory.
+     */
+    private void scanAprilTags() {
+
+        YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
+        limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
+        //latest limelight result
+        LLResult result = limeLight.getLatestResult();
+
+        if (result != null && result.isValid()) {
+
+            Pose3D pose = result.getBotpose_MT2();
+
+            telemetry.addData("Target X (Degrees)", result.getTx());
+            telemetry.addData("Target Y (Degrees)", result.getTy());
+            telemetry.addData("Botpose", pose.toString());
+
+            int id = result.getFiducialResults().get(0).getFiducialId();
+
+            if (id == 21)
+                seq = "gpp";
+            if (id == 22)
+                seq = "pgp";
+            if (id == 23)
+                seq = "ppg";
+
+            distance = getDistance(result);
+            latestResult = result;
+
+        } else {
+            latestResult = null;
+
+            telemetry.addLine("No targets detected from Limelight.");
+        }
+    }
+
+    /**
+     * Calculates the distance the robot is from the target, using data from the limelight
+     *
+     * @return the horizontal displacement/distance from the robot to the target.
+     */
+    private double getDistance(LLResult result) {
+
+        YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
+        limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
+
+        //latest limelight result
+        if (result != null && result.isValid())
+            return (HConst.LLH2 - HConst.LLH1) / (Math.tan(Math.toRadians(HConst.LLANGL + result.getTy())));
+
+        return -1;
     }
 
 }
