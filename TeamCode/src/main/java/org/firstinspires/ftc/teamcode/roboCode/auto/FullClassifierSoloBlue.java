@@ -40,6 +40,11 @@ public class FullClassifierSoloBlue extends LinearOpMode {
     private final double FAR_SHOOTING_VELOCITY = 390;
     private final double CLOSE_SHOOTING_VELOCITY = 330;
 
+    // Shooting sequence timing constants
+    private final double SHOOT_SPINUP_TIME = 1.5;  // Time for shooter to reach velocity
+    private final double SHOOT_PULSE_DURATION = 0.25;  // Time hold is open
+    private final double SHOOT_PULSE_SPACING = 0.45;  // Time between pulses
+
     DcMotorEx intake;
     DcMotorEx outtake;
     DcMotorEx outtake2;
@@ -73,6 +78,23 @@ public class FullClassifierSoloBlue extends LinearOpMode {
         outtake2.setDirection(HConst.OUTTAKE2_DIR);
         transfer.setDirection(HConst.TRANSFER_DIR);
 
+        shooter = new DcMotorSystem(
+                outtake2,
+                28,     // ticks per rev
+                0.01, // velocity update interval
+                telemetry
+        );
+
+        // Initialize shooter system
+        shooter.addFollower(outtake);
+        shooter.setPID(
+                0.0015,  // kP
+                0.002,  // kI
+                0.00171,  // kF
+                0.12     // kStatic
+        );
+        shooter.setTargetVelocity(0);
+
         // Initialize Pedro Pathing follower
         follower = Constants.createFollower(hardwareMap);
         follower.setStartingPose(start);
@@ -91,16 +113,93 @@ public class FullClassifierSoloBlue extends LinearOpMode {
         waitForStart();
 
         shooter.enable();
-        shooter.setTargetVelocity(400);
+
         followTwoPointPath(start, farShooting, 1);
-        hold.setPosition(HConst.HOLD_INACTIVE);
+        shootSequence(FAR_SHOOTING_VELOCITY, 3);
+
+        followTwoPointPath(farShooting, farIntakeStart, 1);
+        intake.setPower(1);
+        followTwoPointPath(farIntakeStart, farIntakeEnd, 2);
+        intake.setPower(0);
+
+        // Return to far shooting and shoot
+        followTwoPointPath(farIntakeEnd, farShooting, 1);
+        shootSequence(FAR_SHOOTING_VELOCITY, 3);
+
+        // Intake second line
+        followTwoPointPath(farShooting, midIntakeStart, 1);
+        intake.setPower(1);
+        followTwoPointPath(midIntakeStart, midIntakeEnd, 2);
+        intake.setPower(0);
+
+        // Move to close shooting position and shoot
+        followTwoPointPath(midIntakeEnd, closeShooting, 1);
+        shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
+
+        // Intake third line
+        followTwoPointPath(closeShooting, closeIntakeStart, 1);
+        intake.setPower(1);
+        followTwoPointPath(closeIntakeStart, closeIntakeEnd, 2);
+        intake.setPower(0);
+
+        // Return to close shooting and shoot
+        followTwoPointPath(closeIntakeEnd, closeShooting, 1);
+        shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
+
+        // Park
+        followTwoPointPath(closeShooting, park, 1);
+
+    }
 
 
+    private void shootSequence(double velocity, int numPieces) {
 
+        // Start shooter and hold closed
+        shooter.setTargetVelocity(velocity);
+        hold.setPosition(HConst.HOLD_ACTIVE);
+        intake.setPower(1);
+        transfer.setPower(0.75);
+        double startTime = timer.getElapsedTimeSeconds();
+        double currentTime;
 
+        // Spin-up phase - wait for shooter to reach velocity
+        while (opModeIsActive() &&
+                (timer.getElapsedTimeSeconds() - startTime) < SHOOT_SPINUP_TIME) {
+            shooter.update();
+            follower.update();
+        }
 
+        // Shooting phase - pulse the hold servo to release pieces
+        for (int i = 0; i < numPieces; i++) {
+            if (!opModeIsActive()) break;
 
+            // Open hold to release piece
+            hold.setPosition(HConst.HOLD_INACTIVE);
+            startTime = timer.getElapsedTimeSeconds();
+            while (opModeIsActive() &&
+                    (timer.getElapsedTimeSeconds() - startTime) < SHOOT_PULSE_DURATION) {
+                shooter.update();
+                follower.update();
+            }
 
+            // Close hold
+            hold.setPosition(HConst.HOLD_ACTIVE);
+
+            // Wait before next piece (if not last piece)
+            if (i < numPieces - 1) {
+                startTime = timer.getElapsedTimeSeconds();
+                while (opModeIsActive() &&
+                        (timer.getElapsedTimeSeconds() - startTime) < SHOOT_PULSE_SPACING) {
+                    shooter.update();
+                    follower.update();
+                }
+            }
+        }
+
+        // Stop shooter
+        shooter.setTargetVelocity(0);
+        intake.setPower(0);
+        transfer.setPower(0);
     }
 
     private void followTwoPointPath(Pose p1, Pose p2, double t){
@@ -109,8 +208,10 @@ public class FullClassifierSoloBlue extends LinearOpMode {
                 .setLinearHeadingInterpolation(p1.getHeading(), p2.getHeading())
                 .build();
 
+        follower.followPath(pathToTarget);
+
         double ct = timer.getElapsedTimeSeconds();
-        while(timer.getElapsedTimeSeconds() < ct + t){
+        while (opModeIsActive() && follower.isBusy() && timer.getElapsedTimeSeconds() < ct + t) {
             follower.update();
             shooter.update();
         }
