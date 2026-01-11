@@ -191,8 +191,8 @@ public class mainTeleOp extends LinearOpMode {
         if (driveTrainMode == HConst.DriveTrainMode.AUTO_TARGET_GOAL) {
 
             double error = latestResult.getTx();
-            double k = 0.125;
-            double p = 0.007;
+            double k = 0.145;
+            double p = 0.01;
             double d = 0.003;
 
             double currentTime = runtime.seconds();
@@ -283,7 +283,7 @@ public class mainTeleOp extends LinearOpMode {
     private void updateAuxiliaryMotors() {
 
         double intakePower = intaking ? 1 : 0;
-        double transferPower = intaking ? 0.3 : 0;
+        double transferPower = intaking ? 0.75 : 0;
 
         if((shooterActive) && distance >= 0) {
             shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance));
@@ -356,7 +356,7 @@ public class mainTeleOp extends LinearOpMode {
             if (id == 23)
                 seq = "ppg";
 
-            distance = getDistance(result) * 39.3701 + 7;
+            distance = getDistance(result) * 39.3701 + 9;
             latestResult = result;
 
         } else {
@@ -377,30 +377,51 @@ public class mainTeleOp extends LinearOpMode {
         //gamepad1.dpadUp
         allOn.update();
 
+        //intake / transfer
+        intaking = gamepad1.x;
+
         //auto shooter
         shooterActive = shooterOn.isToggled();
 
+        //drive mode
+        driveTrainMode = defaultMode;
+
         if(!shootTrigger.isPressed()){
             seqTime = runtime.seconds();
+            holding = true;
         } else {
+            double t = runtime.seconds() - seqTime;
+            double p = 0.25;
+            double s = 0.45;
+
             shooterActive = true;
             intaking = true;
 
-            if(runtime.seconds() - seqTime < 0.2){
+            if(t < 0.2){
                 driveTrainMode = HConst.DriveTrainMode.STOP;
             } else{
                 driveTrainMode = HConst.DriveTrainMode.AUTO_TARGET_GOAL;
             }
 
-            if(runtime.seconds() - seqTime > 1.5){
-                holding = false;
-            } else{
+            if (t < 1.5) {
                 holding = true;
+            } else if (t < 1.5 + p) {
+                holding = false;
+            } else if (t < 1.5 + p + s) {
+                holding = true;
+            } else if (t < 1.5 + 2 * p + s) {
+                holding = false;
+            } else if (t < 1.5 + 2 * p + 2 * s) {
+                holding = true;
+            } else if (t < 1.5 + 3 * p + 2 * s) {
+                holding = false;
+            } else if (t < 1.5 + 3 * p + 3 * s) {
+                holding = true;
+            } else {
+                holding = false;
             }
-        }
 
-        //drive mode
-        driveTrainMode = defaultMode;
+        }
 
         if(gamepad1.left_bumper)
             defaultMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
@@ -411,10 +432,6 @@ public class mainTeleOp extends LinearOpMode {
             driveTrainMode = defaultMode;
         }
 
-
-        //intake / transfer
-
-        intaking = gamepad1.x;
 
     }
 
