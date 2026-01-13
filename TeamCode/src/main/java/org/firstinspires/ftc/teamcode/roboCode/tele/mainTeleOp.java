@@ -89,13 +89,13 @@ public class mainTeleOp extends LinearOpMode {
         // run until the end of the match (driver presses STOP)
         while (opModeIsActive()) {
 
-            updateDrivetrain();
-
-            updateAuxiliaryMotors();
-
             scanAprilTags();
 
             scanGamepads();
+
+            updateDrivetrain();
+
+            updateAuxiliaryMotors();
 
             telemetry.addData("Status", "Run Time: " + runtime);
             telemetry.update();
@@ -191,9 +191,9 @@ public class mainTeleOp extends LinearOpMode {
         if (driveTrainMode == HConst.DriveTrainMode.AUTO_TARGET_GOAL) {
 
             double error = latestResult.getTx();
-            double k = 0.145;
-            double p = 0.01;
-            double d = 0.003;
+            double k = 0.12;
+            double p = 0.012;
+            double d = 0.004;
 
             double currentTime = runtime.seconds();
             double deltaTime = currentTime - lastTime;
@@ -310,6 +310,10 @@ public class mainTeleOp extends LinearOpMode {
 
         telemetry.addLine("===Testing intake and outtake===");
         telemetry.addData("Outtake Power:", "%f", (outtake1.getPower() + outtake2.getPower()) / 2);
+        if(driveTrainMode == HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC)
+            telemetry.addData("Drive Mode:", "robot centric");
+        if(driveTrainMode == HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC)
+            telemetry.addData("Drive Mode:", "field centric");
 
         telemetry.addData("Outtake Velocity:", shooter.getMeasuredVelocity());
         telemetry.addData("Outtake Target Velocity:", shooter.getTargetVelocity());
@@ -356,7 +360,7 @@ public class mainTeleOp extends LinearOpMode {
             if (id == 23)
                 seq = "ppg";
 
-            distance = getDistance(result) * 39.3701 + 9;
+            distance = getDistance(result) * 39.3701 + 7.5 ;
             latestResult = result;
 
         } else {
@@ -397,7 +401,7 @@ public class mainTeleOp extends LinearOpMode {
             shooterActive = true;
             intaking = true;
 
-            if(t < 0.2){
+            if(t < 0.4){
                 driveTrainMode = HConst.DriveTrainMode.STOP;
             } else{
                 driveTrainMode = HConst.DriveTrainMode.AUTO_TARGET_GOAL;
