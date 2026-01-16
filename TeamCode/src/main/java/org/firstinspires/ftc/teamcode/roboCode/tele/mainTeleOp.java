@@ -163,10 +163,10 @@ public class mainTeleOp extends LinearOpMode {
 
         shooter.addFollower(outtake1);
         shooter.setPID(
-                0.0015,  // kP
+                0.002,  // kP
                 0.002,  // kI
-                0.00171,  // kF
-                0.12     // kStatic
+                0.00155,  // kF
+                0.1528     // kStatic
         );
         shooter.setTargetVelocity(0);
         shooter.enable();

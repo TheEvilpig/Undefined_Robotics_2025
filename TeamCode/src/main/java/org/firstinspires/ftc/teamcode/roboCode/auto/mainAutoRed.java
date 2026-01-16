@@ -115,7 +115,7 @@ public class mainAutoRed extends LinearOpMode {
             // Update follower
             follower.update();
             // Update limelight
-            scanAprilTags();
+            //scanAprilTags();
             // Update autonomous path state
             autonomousPathUpdate();
 
@@ -252,7 +252,7 @@ public class mainAutoRed extends LinearOpMode {
     /**
      * Scans april tags on targets to help in robot allignment for accurate scoring trajectory.
      */
-    private void scanAprilTags() {
+    /*private void scanAprilTags() {
 
         YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
         limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
@@ -284,14 +284,14 @@ public class mainAutoRed extends LinearOpMode {
 
             telemetry.addLine("No targets detected from Limelight.");
         }
-    }
+    }*/
 
     /**
      * Calculates the distance the robot is from the target, using data from the limelight
      *
      * @return the horizontal displacement/distance from the robot to the target.
      */
-    private double getDistance(LLResult result) {
+    /*private double getDistance(LLResult result) {
 
         YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
         limeLight.updateRobotOrientation(ore.getYaw(AngleUnit.DEGREES));
@@ -301,6 +301,6 @@ public class mainAutoRed extends LinearOpMode {
             return (HConst.LLH2 - HConst.LLH1) / (Math.tan(Math.toRadians(HConst.LLANGL + result.getTy())));
 
         return -1;
-    }
+    }*/
 
 }
