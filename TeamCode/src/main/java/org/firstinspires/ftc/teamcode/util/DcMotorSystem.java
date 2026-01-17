@@ -142,11 +142,11 @@ public class DcMotorSystem {
     /* ---------------- UTIL - (may relocate to a different class later) ---------------- */
 
     public double computeTargetVelocityFromDistance(double x) {
-
         if (x > 91) {
-            return (Math.sqrt(x - A) / B) + C;
+            return 380;
+                    //(Math.sqrt(x - A) / B) + C;
         } else {
-            return 330.0;
+            return 298;
         }
     }
 
