@@ -29,6 +29,7 @@ public class testing extends LinearOpMode {
 
         //</editor-fold>
         carol = hardwareMap.get(Servo.class,"serv");
+        carol.setDirection(Servo.Direction.REVERSE);
         waitForStart();
 
         runtime.reset();

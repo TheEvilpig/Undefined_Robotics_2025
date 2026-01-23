@@ -51,8 +51,6 @@ public class mainTeleOp extends LinearOpMode {
 
     private final ElapsedTime shootTimer = new ElapsedTime();
 
-    private boolean isRed = false;
-
 
     //limelight
     private Limelight3A limeLight;
@@ -166,7 +164,7 @@ public class mainTeleOp extends LinearOpMode {
         shooter.addFollower(outtake1);
         shooter.setPID(
                 0.002,  // kP
-                0.003,  // kI
+                0.002,  // kI
                 0.00155,  // kF
                 0.1528     // kStatic
         );
@@ -321,9 +319,9 @@ public class mainTeleOp extends LinearOpMode {
         telemetry.addData("Outtake Target Velocity:", shooter.getTargetVelocity());
         telemetry.addLine("===Color Detected===");
         alpha = color.getNormalizedColors().alpha;
-        telemetry.addData("---------------------------------------------------", "-");
-        telemetry.addData("SIDE: ", isRed ? "RED" : "BLUE");
-        telemetry.addData("---------------------------------------------------", "-");
+        telemetry.addData("Red:", color.getNormalizedColors().red / alpha);
+        telemetry.addData("Green:", color.getNormalizedColors().green / alpha);
+        telemetry.addData("Blue:", color.getNormalizedColors().blue / alpha);
         telemetry.addData("dist: ", distance);
         /*
         telemetry.addData("shooter is toggled: ", shooterOn.isToggled());
@@ -362,11 +360,7 @@ public class mainTeleOp extends LinearOpMode {
             if (id == 23)
                 seq = "ppg";
 
-            if(id == (isRed ? 24 : 20))
-                distance = getDistance(result) * 39.3701 + 7.5 ;
-            else{
-                distance = -1;
-            }
+            distance = getDistance(result) * 39.3701 + 7.5 ;
             latestResult = result;
 
         } else {
@@ -401,8 +395,8 @@ public class mainTeleOp extends LinearOpMode {
             holding = true;
         } else {
             double t = runtime.seconds() - seqTime;
-            double p = 0.12;
-            double s = 0.55;
+            double p = 0.25;
+            double s = 0.45;
 
             shooterActive = true;
             intaking = true;
@@ -413,7 +407,7 @@ public class mainTeleOp extends LinearOpMode {
                 driveTrainMode = HConst.DriveTrainMode.AUTO_TARGET_GOAL;
             }
 
-            if (t < 1.7) {
+            if (t < 1.5) {
                 holding = true;
             } else if (t < 1.5 + p) {
                 holding = false;
@@ -442,12 +436,6 @@ public class mainTeleOp extends LinearOpMode {
             driveTrainMode = defaultMode;
         }
 
-
-        if(gamepad1.dpad_right)
-            isRed = false;
-
-        if(gamepad1.dpad_left)
-            isRed = true;
 
     }
 

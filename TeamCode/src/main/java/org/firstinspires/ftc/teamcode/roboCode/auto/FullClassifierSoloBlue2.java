@@ -7,37 +7,34 @@ import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.DcMotorSimple;
 import com.qualcomm.robotcore.hardware.Servo;
 
-import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.util.DcMotorSystem;
 import org.firstinspires.ftc.teamcode.util.HConst;
 
 
 @Autonomous(name="Full Classifier Solo Blue", group = "Autonomous")
-public class FullClassifierSoloBlue extends LinearOpMode {
+public class FullClassifierSoloBlue2 extends LinearOpMode {
 
-    private final Pose start = new Pose(60, 8, Math.toRadians(270));
+    private final Pose start = new Pose(60, 8, Math.toRadians(90));
 
-    private final Pose farShooting = new Pose(60, 13, Math.toRadians(295.5));
-    private final Pose farShooting2 = new Pose(60, 13, Math.toRadians(291));
-    private final Pose closeShooting = new Pose(65, 73, Math.toRadians(311.5));
-    private final Pose closeShooting2 = new Pose(65, 73, Math.toRadians(307.5));
+    private final Pose farShooting = new Pose(55, 20, Math.toRadians(115.5));
+    private final Pose farShooting2 = new Pose(55, 20, Math.toRadians(111));
+    private final Pose closeShooting = new Pose(60, 80, Math.toRadians(131.5));
+    private final Pose closeShooting2 = new Pose(60, 80, Math.toRadians(127.5));
 
-    private final Pose farIntakeStart = new Pose(48, 49, Math.toRadians(180));
-    private final Pose farIntakeEnd = new Pose(23, 49, Math.toRadians(180));
+    private final Pose farIntakeStart = new Pose(33,47, Math.toRadians(180));
+    private final Pose farIntakeEnd = new Pose(3, 47, Math.toRadians(180));
 
-    private final Pose midIntakeStart = new Pose(48, 75, Math.toRadians(180));
-    private final Pose midIntakeEnd = new Pose(23, 72, Math.toRadians(180));
+    private final Pose midIntakeStart = new Pose(33, 73, Math.toRadians(180));
+    private final Pose midIntakeEnd = new Pose(1, 64, Math.toRadians(180));
 
-    private final Pose closeIntakeStart = new Pose(48, 94, Math.toRadians(180));
-    private final Pose closeIntakeEnd = new Pose(29, 94, Math.toRadians(180));
+    private final Pose closeIntakeStart = new Pose(33, 92, Math.toRadians(180));
+    private final Pose closeIntakeEnd = new Pose(6, 92, Math.toRadians(180));
 
-    private final Pose park = new Pose(28, 72, Math.toRadians(270));
+    private final Pose park = new Pose(28, 72, Math.toRadians(90));
 
 
     private final double FAR_SHOOTING_VELOCITY = 300;
@@ -241,3 +238,5 @@ public class FullClassifierSoloBlue extends LinearOpMode {
 
 
 }
+
+
