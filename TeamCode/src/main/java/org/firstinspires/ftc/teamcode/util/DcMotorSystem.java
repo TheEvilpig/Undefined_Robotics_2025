@@ -30,7 +30,6 @@ public class DcMotorSystem {
     // Encoder tracking
     private int lastPosition = 0;
     private double lastTime = 0.0;
-
     public double power = 0;
 
     // Config
