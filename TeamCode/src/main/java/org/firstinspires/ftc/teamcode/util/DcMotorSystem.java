@@ -141,13 +141,11 @@ public class DcMotorSystem {
 
     /* ---------------- UTIL - (may relocate to a different class later) ---------------- */
 
+
+    //change this to have params for everything so you can change tvelocities in main with click fo a
+    //button to do efficient testing
     public double computeTargetVelocityFromDistance(double x) {
-        if (x > 91) {
-            return 380;
-                    //(Math.sqrt(x - A) / B) + C;
-        } else {
-            return 298;
-        }
+        return 0.00817963 * Math.pow(x, 2) -0.570922 * x + 254.31885;
     }
 
 

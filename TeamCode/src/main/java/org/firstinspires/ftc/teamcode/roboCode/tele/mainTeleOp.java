@@ -40,7 +40,10 @@ public class mainTeleOp extends LinearOpMode {
 
     private NormalizedColorSensor color;
 
+    private double speed = 260;
+
     //Servos
+    double vInc = 0;
 
     private Servo hold;
 
@@ -53,6 +56,8 @@ public class mainTeleOp extends LinearOpMode {
 
     private boolean isRed = false;
 
+    double tpower = 0;
+
 
     //limelight
     private Limelight3A limeLight;
@@ -62,10 +67,10 @@ public class mainTeleOp extends LinearOpMode {
     //needed to pair with limelight
     private IMU imu;
 
-    private final ToggleButton shooterOn = new ToggleButton(() -> gamepad1.dpad_left);
-    private final ToggleButton allOn = new ToggleButton(() -> gamepad1.dpad_up);
+    //private final ToggleButton allOn = new ToggleButton(() -> gamepad1.x);
+    private boolean allOn = false;
     private final TriggerButton shootTrigger =
-            new TriggerButton(() -> gamepad1.right_trigger, 0.5);
+            new TriggerButton(() -> gamepad1.right_trigger, 0.8);
 
 
     private boolean intaking = false;
@@ -165,10 +170,10 @@ public class mainTeleOp extends LinearOpMode {
 
         shooter.addFollower(outtake1);
         shooter.setPID(
-                0.002,  // kP
-                0.003,  // kI
-                0.00155,  // kF
-                0.1528     // kStatic
+                0.00345,  // kP
+                0.00015,  // kI
+                0.00175,  // kF
+                0.1358     // kStatic
         );
         shooter.setTargetVelocity(0);
         shooter.enable();
@@ -193,9 +198,9 @@ public class mainTeleOp extends LinearOpMode {
         if (driveTrainMode == HConst.DriveTrainMode.AUTO_TARGET_GOAL) {
 
             double error = latestResult.getTx();
-            double k = 0.12;
-            double p = 0.012;
-            double d = 0.004;
+            double k = distance > 91 ? 0.305 : 0.305;
+            double p = 0.0085;
+            double d = 0.008;
 
             double currentTime = runtime.seconds();
             double deltaTime = currentTime - lastTime;
@@ -205,7 +210,7 @@ public class mainTeleOp extends LinearOpMode {
 
             turnPower = Math.max(-.5, Math.min(.5, turnPower));
 
-            if (Math.abs(error) < 0.55)
+            if (Math.abs(error) < 1.8)
                 turnPower = 0;
 
             telemetry.addData("Turn Power:", turnPower);
@@ -214,8 +219,8 @@ public class mainTeleOp extends LinearOpMode {
             telemetry.addData("PID Delta Time:", deltaTime);
 
             frontLeftPower = turnPower;
-            backLeftPower = turnPower;
-            frontRightPower = -turnPower;
+            backLeftPower = 0;
+            frontRightPower = 0;
             backRightPower = -turnPower;
 
             lastError = error;
@@ -283,23 +288,34 @@ public class mainTeleOp extends LinearOpMode {
      * Drives the intake, transfer, outtake motors and braking system servos.
      */
     private void updateAuxiliaryMotors() {
+        double transferPower = 0;
+        double intakePower = 0.2;
 
-        double intakePower = intaking ? 1 : 0;
-        double transferPower = intaking ? 0.75 : 0;
+        if (allOn) {
+            intakePower = .85;
+            transferPower = .42;
+        }
+
+        if(intaking)
+            intakePower = 0.5;
+        //transferPower = shooterActive ? tpower : transferPower;
 
         if((shooterActive) && distance >= 0) {
-            shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance));
+            shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance) + vInc);
         } else {
             shooter.setTargetVelocity(0);
         }
 
-        if (allOn.isToggled()) {
-            intakePower = .9;
-            transferPower = .9;
-        }
+
+        if(intaking)
+            transferPower = 0.41;
 
         if (gamepad1.dpad_down) {
-            transferPower = -.22;
+           vInc = vInc - 1;
+        }
+
+        if (gamepad1.dpad_up) {
+            vInc = vInc + 1;
         }
 
         //servo stopper
@@ -316,15 +332,21 @@ public class mainTeleOp extends LinearOpMode {
             telemetry.addData("Drive Mode:", "robot centric");
         if(driveTrainMode == HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC)
             telemetry.addData("Drive Mode:", "field centric");
+        if(driveTrainMode==HConst.DriveTrainMode.AUTO_TARGET_GOAL)
+            telemetry.addData("Drive Mode:", "ALIGNMENT");
 
         telemetry.addData("Outtake Velocity:", shooter.getMeasuredVelocity());
         telemetry.addData("Outtake Target Velocity:", shooter.getTargetVelocity());
-        telemetry.addLine("===Color Detected===");
-        alpha = color.getNormalizedColors().alpha;
+        //telemetry.addLine("===Color Detected===");
+        //alpha = color.getNormalizedColors().alpha;
+
+        telemetry.addData("dist: ", distance);
         telemetry.addData("---------------------------------------------------", "-");
         telemetry.addData("SIDE: ", isRed ? "RED" : "BLUE");
         telemetry.addData("---------------------------------------------------", "-");
-        telemetry.addData("dist: ", distance);
+        telemetry.addData("Velocity Increment: ", vInc);
+        telemetry.addData("---------------------------------------------------", "-");
+
         /*
         telemetry.addData("shooter is toggled: ", shooterOn.isToggled());
         telemetry.addData("dist: ", distance);
@@ -383,22 +405,26 @@ public class mainTeleOp extends LinearOpMode {
         //update toggleable buttons
 
         //gamepad1.dpadLeft
-        shooterOn.update();
+        //shooterOn.update();
         //gamepad1.dpadUp
-        allOn.update();
+        allOn = gamepad1.x;
 
         //intake / transfer
-        intaking = gamepad1.x;
-
-        //auto shooter
-        shooterActive = shooterOn.isToggled();
+        //intaking = gamepad1.x;
 
         //drive mode
         driveTrainMode = defaultMode;
 
+        if(gamepad1.left_bumper)
+            defaultMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
+        else if(gamepad1.right_bumper)
+            defaultMode = HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC;
+
         if(!shootTrigger.isPressed()){
             seqTime = runtime.seconds();
+            shooterActive = false;
             holding = true;
+            intaking = false;
         } else {
             double t = runtime.seconds() - seqTime;
             double p = 0.12;
@@ -406,6 +432,7 @@ public class mainTeleOp extends LinearOpMode {
 
             shooterActive = true;
             intaking = true;
+            //tpower =  0.1 + Math.pow(t, 1.3) * 0.1;
 
             if(t < 0.4){
                 driveTrainMode = HConst.DriveTrainMode.STOP;
@@ -415,9 +442,9 @@ public class mainTeleOp extends LinearOpMode {
 
             if (t < 1.7) {
                 holding = true;
-            } else if (t < 1.5 + p) {
+            } else if (t < 1.5 + p + 10) {
                 holding = false;
-            } else if (t < 1.5 + p + s) {
+            } else if (t < 1.5 + p + s + 10) {
                 holding = true;
             } else if (t < 1.5 + 2 * p + s) {
                 holding = false;
@@ -432,11 +459,6 @@ public class mainTeleOp extends LinearOpMode {
             }
 
         }
-
-        if(gamepad1.left_bumper)
-            defaultMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
-        else if(gamepad1.right_bumper)
-            defaultMode = HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC;
 
         if(latestResult == null){
             driveTrainMode = defaultMode;

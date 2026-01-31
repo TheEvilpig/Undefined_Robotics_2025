@@ -31,18 +31,16 @@ public class FullClassifierSoloBlue extends LinearOpMode {
     private final Pose farIntakeStart = new Pose(48, 49, Math.toRadians(180));
     private final Pose farIntakeEnd = new Pose(23, 49, Math.toRadians(180));
 
-    private final Pose midIntakeStart = new Pose(48, 75, Math.toRadians(180));
-    private final Pose midIntakeEnd = new Pose(23, 72, Math.toRadians(180));
+    private final Pose midIntakeStart = new Pose(64, 68, Math.toRadians(180));
+    private final Pose midIntakeEnd = new Pose(18, 72, Math.toRadians(180));
 
     private final Pose closeIntakeStart = new Pose(48, 94, Math.toRadians(180));
-    private final Pose closeIntakeEnd = new Pose(29, 94, Math.toRadians(180));
+    private final Pose closeIntakeEnd = new Pose(28, 94, Math.toRadians(180));
 
     private final Pose park = new Pose(28, 72, Math.toRadians(270));
 
-
-    private final double FAR_SHOOTING_VELOCITY = 300;
-    private final double FAR_SHOOTING_VELOCITY2 = 298;
-    private final double CLOSE_SHOOTING_VELOCITY = 290;
+    private final double FAR_SHOOTING_VELOCITY = 327;
+    private final double CLOSE_SHOOTING_VELOCITY = 250;
 
     // Shooting sequence timing constants
     private final double SHOOT_SPINUP_TIME = 0.75;  // Time for shooter to reach velocity
@@ -92,10 +90,10 @@ public class FullClassifierSoloBlue extends LinearOpMode {
         // Initialize shooter system
         shooter.addFollower(outtake);
         shooter.setPID(
-                0.0013,  // kP
-                0.004,  // kI
-                0.00155,  // kF
-                0.1528     // kStatic
+                0.00345,  // kP
+                0.00015,  // kI
+                0.00175,  // kF
+                0.1358     // kStatic
         );
         shooter.setTargetVelocity(0);
 
@@ -123,20 +121,21 @@ public class FullClassifierSoloBlue extends LinearOpMode {
         followTwoPointPath(start, farShooting, 3);
         shootSequence(FAR_SHOOTING_VELOCITY, 3);
 
-        followTwoPointPath(farShooting, farIntakeStart, 2);
+        followTwoPointPath(farShooting, farIntakeStart, 2.9);
         intake.setPower(1);
         transfer.setPower(1);
-        followTwoPointPath(farIntakeStart, farIntakeEnd, 2);
+        followTwoPointPath(farIntakeStart, farIntakeEnd, 2.5);
         intake.setPower(0.5);
         transfer.setPower(0);
 
         // Return to far shooting and shoot
-        shooter.setTargetVelocity(FAR_SHOOTING_VELOCITY2);
-        followTwoPointPath(farIntakeEnd, farShooting2, 5);
-        shootSequence(FAR_SHOOTING_VELOCITY, 3);
+        shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
+        followTwoPointPath(farIntakeEnd, farIntakeStart, 1);
+        followTwoPointPath(farIntakeStart, closeShooting, 5);
+        shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
 
         // Intake second line
-        followTwoPointPath(farShooting, midIntakeStart, 2.5);
+        followTwoPointPath(farShooting, midIntakeStart, 3.5);
         intake.setPower(1);
         transfer.setPower(1);
         followTwoPointPath(midIntakeStart, midIntakeEnd, 2);
@@ -145,11 +144,12 @@ public class FullClassifierSoloBlue extends LinearOpMode {
 
         // Move to close shooting position and shoot
         shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
-        followTwoPointPath(midIntakeEnd, closeShooting, 5);
+        //followTwoPointPath(midIntakeEnd, midIntakeStart, 1);
+        followTwoPointPath(midIntakeStart, closeShooting, 5);
         shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
 
         // Intake third line
-        followTwoPointPath(closeShooting, closeIntakeStart, 1.5);
+        followTwoPointPath(closeShooting, closeIntakeStart, 2.5);
         intake.setPower(1);
         transfer.setPower(1);
         followTwoPointPath(closeIntakeStart, closeIntakeEnd, 1.5);
@@ -158,7 +158,7 @@ public class FullClassifierSoloBlue extends LinearOpMode {
 
         // Return to close shooting and shoot
         shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
-        followTwoPointPath(closeIntakeEnd, closeShooting2, 5);
+        followTwoPointPath(closeIntakeEnd, closeShooting2, 4.5);
         shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
 
         // Park

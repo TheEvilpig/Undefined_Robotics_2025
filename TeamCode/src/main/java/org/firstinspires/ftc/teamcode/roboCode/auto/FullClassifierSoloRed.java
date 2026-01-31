@@ -20,27 +20,27 @@ public class FullClassifierSoloRed extends LinearOpMode {
 
     private final Pose start = new Pose(84, 8, Math.toRadians(270));
 
-    private final Pose farShooting = new Pose(84, 25.5, Math.toRadians(243.5));
-    private final Pose farShooting2 = new Pose(84, 24.5, Math.toRadians(247.5));
+    private final Pose farShooting = new Pose(84, 25.5, Math.toRadians(243));
+    private final Pose farShooting2 = new Pose(84, 24.5, Math.toRadians(248));
 
-    private final Pose closeShooting = new Pose(83, 84, Math.toRadians(227));
-    private final Pose closeShooting2 = new Pose(83, 84, Math.toRadians(229));
+    private final Pose closeShooting = new Pose(83, 84, Math.toRadians(227.5));
+    private final Pose closeShooting2 = new Pose(83, 84, Math.toRadians(229.5));
 
-    private final Pose farIntakeStart = new Pose(94, 23.5, Math.toRadians(0));
-    private final Pose farIntakeEnd = new Pose(146, 23.5, Math.toRadians(0));
+    private final Pose farIntakeStart = new Pose(93, 26, Math.toRadians(0));
+    private final Pose farIntakeEnd = new Pose(148, 26, Math.toRadians(0));
 
-    private final Pose midIntakeStart = new Pose(101, 48, Math.toRadians(0));
-    private final Pose midIntakeEnd = new Pose(145, 48, Math.toRadians(0));
+    private final Pose midIntakeStart = new Pose(99, 50.5, Math.toRadians(0));
+    private final Pose midIntakeEnd = new Pose(148, 46, Math.toRadians(0));
 
-    private final Pose closeIntakeStart = new Pose(96, 72.5, Math.toRadians(0));
-    private final Pose closeIntakeEnd = new Pose(139, 71, Math.toRadians(0));
+    private final Pose closeIntakeStart = new Pose(93, 74.5, Math.toRadians(0));
+    private final Pose closeIntakeEnd = new Pose(143, 72, Math.toRadians(0));
 
     private final Pose park = new Pose(116, 72, Math.toRadians(270));
 
 
-    private final double FAR_SHOOTING_VELOCITY = 300;
-    private final double FAR_SHOOTING_VELOCITY2 = 295;
-    private final double CLOSE_SHOOTING_VELOCITY = 295;
+    private final double FAR_SHOOTING_VELOCITY = 329;
+    private final double FAR_SHOOTING_VELOCITY2 = 327;
+    private final double CLOSE_SHOOTING_VELOCITY = 259;
 
     // Shooting sequence timing constants
     private final double SHOOT_SPINUP_TIME = 0.75;  // Time for shooter to reach velocity
@@ -91,10 +91,10 @@ public class FullClassifierSoloRed extends LinearOpMode {
         // Initialize shooter system
         shooter.addFollower(outtake);
         shooter.setPID(
-                0.0013,  // kP
-                0.004,  // kI
-                0.00155,  // kF
-                0.1528     // kStatic
+                0.00345,  // kP
+                0.00015,  // kI
+                0.00175,  // kF
+                0.1358     // kStatic
         );
         shooter.setTargetVelocity(0);
 
@@ -119,7 +119,7 @@ public class FullClassifierSoloRed extends LinearOpMode {
 
         shooter.setTargetVelocity(FAR_SHOOTING_VELOCITY);
         intake.setPower(0.5);
-        followTwoPointPath(start, farShooting, 2.5);
+        followTwoPointPath(start, farShooting, 3);
         shootSequence(FAR_SHOOTING_VELOCITY, 3);
 
         followTwoPointPath(farShooting, farIntakeStart, 2.9);
@@ -129,13 +129,15 @@ public class FullClassifierSoloRed extends LinearOpMode {
         intake.setPower(0.5);
         transfer.setPower(0);
 
+
         // Return to far shooting and shoot
-        shooter.setTargetVelocity(FAR_SHOOTING_VELOCITY2);
-        followTwoPointPath(farIntakeEnd, farShooting2, 4.5);
-        shootSequence(FAR_SHOOTING_VELOCITY, 3);
+        shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
+        followTwoPointPath(farIntakeEnd, farIntakeStart, 1);
+        followTwoPointPath(farIntakeStart, closeShooting, 5);
+        shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
 
         // Intake second line
-        followTwoPointPath(farShooting, midIntakeStart, 3);
+        followTwoPointPath(closeShooting, midIntakeStart, 3);
         intake.setPower(1);
         transfer.setPower(1);
         followTwoPointPath(midIntakeStart, midIntakeEnd, 2);
@@ -144,7 +146,8 @@ public class FullClassifierSoloRed extends LinearOpMode {
 
         // Move to close shooting position and shoot
         shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
-        followTwoPointPath(midIntakeEnd, closeShooting, 4.5);
+        followTwoPointPath(midIntakeEnd, midIntakeStart, 1);
+        followTwoPointPath(midIntakeEnd, closeShooting, 3.5);
         shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
 
         // Intake third line
