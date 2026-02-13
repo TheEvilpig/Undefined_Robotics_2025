@@ -15,31 +15,26 @@ import org.firstinspires.ftc.teamcode.util.DcMotorSystem;
 import org.firstinspires.ftc.teamcode.util.HConst;
 
 
-@Autonomous(name="Full Classifier Solo Blue 2", group = "Autonomous")
-public class FullClassifierSoloBlue2 extends LinearOpMode {
+@Autonomous(name="Far + Mid Blue", group = "Autonomous")
+public class FarMidBlue extends LinearOpMode {
 
-    private final Pose start = new Pose(60, 8, Math.toRadians(90));
+    private final Pose start = new Pose(60, 8, Math.toRadians(270));
 
-    private final Pose farShooting = new Pose(55, 20, Math.toRadians(115.5));
-    private final Pose farShooting2 = new Pose(55, 20, Math.toRadians(111));
-    private final Pose closeShooting = new Pose(60, 80, Math.toRadians(131.5));
-    private final Pose closeShooting2 = new Pose(60, 80, Math.toRadians(127.5));
+    private final Pose farShooting = new Pose(60, 13, Math.toRadians(295.5));
+    private final Pose farShooting2 = new Pose(60, 13, Math.toRadians(291));
+    private final Pose closeShooting = new Pose(65, 73, Math.toRadians(311.5));
+    private final Pose closeShooting2 = new Pose(65, 73, Math.toRadians(307.5));
 
-    private final Pose farIntakeStart = new Pose(33,47, Math.toRadians(180));
-    private final Pose farIntakeEnd = new Pose(3, 47, Math.toRadians(180));
+    private final Pose farIntakeStart = new Pose(48, 49, Math.toRadians(180));
+    private final Pose farIntakeEnd = new Pose(23, 49, Math.toRadians(180));
 
-    private final Pose midIntakeStart = new Pose(33, 73, Math.toRadians(180));
-    private final Pose midIntakeEnd = new Pose(1, 64, Math.toRadians(180));
+    private final Pose midIntakeStart = new Pose(64, 68, Math.toRadians(180));
+    private final Pose midIntakeEnd = new Pose(18, 72, Math.toRadians(180));
 
-    private final Pose closeIntakeStart = new Pose(33, 92, Math.toRadians(180));
-    private final Pose closeIntakeEnd = new Pose(6, 92, Math.toRadians(180));
+    private final Pose park = new Pose(28, 72, Math.toRadians(270));
 
-    private final Pose park = new Pose(28, 72, Math.toRadians(90));
-
-
-    private final double FAR_SHOOTING_VELOCITY = 300;
-    private final double FAR_SHOOTING_VELOCITY2 = 298;
-    private final double CLOSE_SHOOTING_VELOCITY = 290;
+    private final double FAR_SHOOTING_VELOCITY = 327;
+    private final double CLOSE_SHOOTING_VELOCITY = 250;
 
     // Shooting sequence timing constants
     private final double SHOOT_SPINUP_TIME = 0.75;  // Time for shooter to reach velocity
@@ -89,10 +84,10 @@ public class FullClassifierSoloBlue2 extends LinearOpMode {
         // Initialize shooter system
         shooter.addFollower(outtake);
         shooter.setPID(
-                0.0013,  // kP
-                0.004,  // kI
-                0.00155,  // kF
-                0.1528     // kStatic
+                0.00345,  // kP
+                0.00015,  // kI
+                0.00175,  // kF
+                0.1358     // kStatic
         );
         shooter.setTargetVelocity(0);
 
@@ -120,20 +115,21 @@ public class FullClassifierSoloBlue2 extends LinearOpMode {
         followTwoPointPath(start, farShooting, 3);
         shootSequence(FAR_SHOOTING_VELOCITY, 3);
 
-        followTwoPointPath(farShooting, farIntakeStart, 2);
+        followTwoPointPath(farShooting, farIntakeStart, 2.9);
         intake.setPower(1);
         transfer.setPower(1);
-        followTwoPointPath(farIntakeStart, farIntakeEnd, 2);
+        followTwoPointPath(farIntakeStart, farIntakeEnd, 2.5);
         intake.setPower(0.5);
         transfer.setPower(0);
 
         // Return to far shooting and shoot
-        shooter.setTargetVelocity(FAR_SHOOTING_VELOCITY2);
-        followTwoPointPath(farIntakeEnd, farShooting2, 5);
-        shootSequence(FAR_SHOOTING_VELOCITY, 3);
+        shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
+        followTwoPointPath(farIntakeEnd, farIntakeStart, 1);
+        followTwoPointPath(farIntakeStart, closeShooting, 5);
+        shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
 
         // Intake second line
-        followTwoPointPath(farShooting, midIntakeStart, 2.5);
+        followTwoPointPath(farShooting, midIntakeStart, 3.5);
         intake.setPower(1);
         transfer.setPower(1);
         followTwoPointPath(midIntakeStart, midIntakeEnd, 2);
@@ -142,20 +138,8 @@ public class FullClassifierSoloBlue2 extends LinearOpMode {
 
         // Move to close shooting position and shoot
         shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
-        followTwoPointPath(midIntakeEnd, closeShooting, 5);
-        shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
-
-        // Intake third line
-        followTwoPointPath(closeShooting, closeIntakeStart, 1.5);
-        intake.setPower(1);
-        transfer.setPower(1);
-        followTwoPointPath(closeIntakeStart, closeIntakeEnd, 1.5);
-        intake.setPower(0.5);
-        transfer.setPower(0);
-
-        // Return to close shooting and shoot
-        shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
-        followTwoPointPath(closeIntakeEnd, closeShooting2, 5);
+        //followTwoPointPath(midIntakeEnd, midIntakeStart, 1);
+        followTwoPointPath(midIntakeStart, closeShooting, 5);
         shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
 
         // Park
@@ -238,5 +222,3 @@ public class FullClassifierSoloBlue2 extends LinearOpMode {
 
 
 }
-
-

@@ -1,246 +1,51 @@
 package org.firstinspires.ftc.teamcode.roboCode.auto;
 
-import com.pedropathing.follower.Follower;
-import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
-import com.pedropathing.paths.PathChain;
-import com.pedropathing.util.Timer;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
-import com.qualcomm.robotcore.hardware.DcMotorEx;
-import com.qualcomm.robotcore.hardware.Servo;
-
-import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
-import org.firstinspires.ftc.teamcode.util.DcMotorSystem;
-import org.firstinspires.ftc.teamcode.util.HConst;
-
 
 @Autonomous(name="Full Classifier Solo Red", group = "Autonomous")
 public class FullClassifierSoloRed extends LinearOpMode {
 
-    private final Pose start = new Pose(84, 8, Math.toRadians(270));
-
-    private final Pose farShooting = new Pose(84, 25.5, Math.toRadians(243));
-    private final Pose farShooting2 = new Pose(84, 24.5, Math.toRadians(248));
-
-    private final Pose closeShooting = new Pose(83, 84, Math.toRadians(227.5));
-    private final Pose closeShooting2 = new Pose(83, 84, Math.toRadians(229.5));
-
-    private final Pose farIntakeStart = new Pose(93, 26, Math.toRadians(0));
-    private final Pose farIntakeEnd = new Pose(148, 26, Math.toRadians(0));
-
-    private final Pose midIntakeStart = new Pose(99, 50.5, Math.toRadians(0));
-    private final Pose midIntakeEnd = new Pose(148, 46, Math.toRadians(0));
-
-    private final Pose closeIntakeStart = new Pose(93, 74.5, Math.toRadians(0));
-    private final Pose closeIntakeEnd = new Pose(143, 72, Math.toRadians(0));
-
     private final Pose park = new Pose(116, 72, Math.toRadians(270));
+    AutoUtil au;
 
-
-    private final double FAR_SHOOTING_VELOCITY = 329;
-    private final double FAR_SHOOTING_VELOCITY2 = 327;
-    private final double CLOSE_SHOOTING_VELOCITY = 259;
-
-    // Shooting sequence timing constants
-    private final double SHOOT_SPINUP_TIME = 0.75;  // Time for shooter to reach velocity
-    private final double SHOOT_PULSE_DURATION = 0.125;  // Time hold is open
-    private final double SHOOT_PULSE_SPACING = 0.75;  // Time between pulses
-
-
-    DcMotorEx intake;
-    DcMotorEx outtake;
-    DcMotorEx outtake2;
-    DcMotorEx transfer;
-    Follower follower;
-
-    private Servo hold;
-
-    private Timer timer;
-
-    private DcMotorSystem shooter;
-
-    // Define path
-    private PathChain pathToTarget;
-    private PathChain pathToTarget1;
 
     @Override
     public void runOpMode() {
-        //shooting system
-        intake = hardwareMap.get(DcMotorEx.class, HConst.INTAKE);
-
-        //outtake 1 is in same orientation as previous outtake motor
-        outtake = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE1);
-        outtake2 = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE2);
-        transfer = hardwareMap.get(DcMotorEx.class, HConst.TRANSFER);
-
-        hold = hardwareMap.get(Servo.class, HConst.HOLD);
-
-        intake.setDirection(HConst.INTAKE_DIR);
-        outtake.setDirection(HConst.OUTTAKE1_DIR);
-        outtake2.setDirection(HConst.OUTTAKE2_DIR);
-        transfer.setDirection(HConst.TRANSFER_DIR);
-
-        shooter = new DcMotorSystem(
-                outtake2,
-                28,     // ticks per rev
-                0.01, // velocity update interval
-                telemetry
-        );
-
-        // Initialize shooter system
-        shooter.addFollower(outtake);
-        shooter.setPID(
-                0.00345,  // kP
-                0.00015,  // kI
-                0.00175,  // kF
-                0.1358     // kStatic
-        );
-        shooter.setTargetVelocity(0);
-
-        // Initialize Pedro Pathing follower
-        follower = Constants.createFollower(hardwareMap);
-        follower.setStartingPose(start);
-
-        // Initialize timer
-        timer = new Timer();
-        timer.resetTimer();
-
-        // Wait for the game to start (driver presses START)
-        telemetry.addData("Status", "Initialized");
-        telemetry.addData("Starting Position", "X: %.1f, Y: %.1f", start.getX(), start.getY());
-        telemetry.update();
-
-        hold.setPosition(HConst.HOLD_ACTIVE);
+        au = new AutoUtil(this, AutoUtil.Side.REDFAR);
 
         waitForStart();
 
-        shooter.enable();
+        au.start();
 
-        shooter.setTargetVelocity(FAR_SHOOTING_VELOCITY);
-        intake.setPower(0.5);
-        followTwoPointPath(start, farShooting, 3);
-        shootSequence(FAR_SHOOTING_VELOCITY, 3);
+        au.scorePreloads(4.5);
 
-        followTwoPointPath(farShooting, farIntakeStart, 2.9);
-        intake.setPower(1);
-        transfer.setPower(1);
-        followTwoPointPath(farIntakeStart, farIntakeEnd, 2.5);
-        intake.setPower(0.5);
-        transfer.setPower(0);
+        au.intakeFar(1.5, 2);
 
+        // take an extra path to not hit balls
+        au.setShooterVelocity(au.config.closeVelocity());
 
-        // Return to far shooting and shoot
-        shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
-        followTwoPointPath(farIntakeEnd, farIntakeStart, 1);
-        followTwoPointPath(farIntakeStart, closeShooting, 5);
-        shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
+        au.followTwoPointPath(au.config.farIntakeEnd(), au.config.farIntakeStart(), 1);
+        au.followTwoPointPath(au.config.farIntakeStart(), au.config.closeShooting(), 2.5);
 
-        // Intake second line
-        followTwoPointPath(closeShooting, midIntakeStart, 3);
-        intake.setPower(1);
-        transfer.setPower(1);
-        followTwoPointPath(midIntakeStart, midIntakeEnd, 2);
-        intake.setPower(0.5);
-        transfer.setPower(0);
+        au.shootSequence();
 
-        // Move to close shooting position and shoot
-        shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
-        followTwoPointPath(midIntakeEnd, midIntakeStart, 1);
-        followTwoPointPath(midIntakeEnd, closeShooting, 3.5);
-        shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
+        au.intakeMid(1.3, 2);
 
-        // Intake third line
-        followTwoPointPath(closeShooting, closeIntakeStart, 2.5);
-        intake.setPower(1);
-        transfer.setPower(1);
-        followTwoPointPath(closeIntakeStart, closeIntakeEnd, 1.5);
-        intake.setPower(0.5);
-        transfer.setPower(0);
+        au.scoreClose(2.5);
 
-        // Return to close shooting and shoot
-        shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
-        followTwoPointPath(closeIntakeEnd, closeShooting2, 4.5);
-        shootSequence(CLOSE_SHOOTING_VELOCITY, 3);
+        au.intakeClose(1.6, 1.5);
+
+        au.scoreClose(2.5);
+
+        au.setShooterVelocity(0);
 
         // Park
-        followTwoPointPath(closeShooting, park, 1);
+        au.goToPoint(park, 1);
+        au.updateSharedHeading();
 
     }
-
-
-    private void shootSequence(double velocity, int numPieces) {
-
-        // Start shooter and hold closed
-        shooter.setTargetVelocity(velocity);
-        hold.setPosition(HConst.HOLD_ACTIVE);
-        intake.setPower(1);
-        transfer.setPower(0.75);
-        double startTime = timer.getElapsedTimeSeconds();
-        double currentTime;
-
-        // Spin-up phase - wait for shooter to reach velocity
-        while (opModeIsActive() &&
-                (timer.getElapsedTimeSeconds() - startTime) < SHOOT_SPINUP_TIME) {
-            shooter.update();
-            follower.update();
-        }
-
-        // Shooting phase - pulse the hold servo to release pieces
-        for (int i = 0; i < numPieces; i++) {
-            if (!opModeIsActive()) break;
-
-            // Open hold to release piece
-            hold.setPosition(HConst.HOLD_INACTIVE);
-            startTime = timer.getElapsedTimeSeconds();
-            while (opModeIsActive() &&
-                    (timer.getElapsedTimeSeconds() - startTime) < SHOOT_PULSE_DURATION) {
-                shooter.update();
-                follower.update();
-            }
-
-            // Close hold
-            hold.setPosition(HConst.HOLD_ACTIVE);
-
-            // Wait before next piece (if not last piece)
-            if (i < numPieces - 1) {
-                startTime = timer.getElapsedTimeSeconds();
-                while (opModeIsActive() &&
-                        (timer.getElapsedTimeSeconds() - startTime) < SHOOT_PULSE_SPACING) {
-                    shooter.update();
-                    follower.update();
-                }
-            }
-        }
-
-        // Stop shooter
-        shooter.setTargetVelocity(0);
-        intake.setPower(0.5);
-        transfer.setPower(0);
-    }
-
-    private void followTwoPointPath(Pose p1, Pose p2, double t){
-        pathToTarget = follower.pathBuilder()
-                .addPath(new BezierLine(p1, p2))
-                .setLinearHeadingInterpolation(p1.getHeading(), p2.getHeading())
-                .build();
-
-        follower.followPath(pathToTarget);
-
-        double ct = timer.getElapsedTimeSeconds();
-        while (opModeIsActive() && follower.isBusy() && timer.getElapsedTimeSeconds() < ct + t) {
-            follower.update();
-            shooter.update();
-        }
-
-    }
-
-
-
-
-
-
-
 
 }
 

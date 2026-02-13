@@ -1,7 +1,7 @@
 package org.firstinspires.ftc.teamcode.roboCode.tele;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
-import com.qualcomm.hardware.rev.RevColorSensorV3;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 import com.qualcomm.robotcore.hardware.DcMotor;
@@ -16,8 +16,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 import org.firstinspires.ftc.teamcode.util.DcMotorSystem;
 import org.firstinspires.ftc.teamcode.util.HConst;
 import org.firstinspires.ftc.teamcode.util.*;
-
-import java.util.ArrayList;
 
 @TeleOp(name="Main_TeleOp", group="Linear OpMode")
 
@@ -36,33 +34,40 @@ public class mainTeleOp extends LinearOpMode {
     private HConst.DriveTrainMode driveTrainMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
     private HConst.DriveTrainMode defaultMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
 
+    private double fieldHeadingOffset = 0; // radians
+
+
     private DcMotorSystem shooter;
 
     private NormalizedColorSensor color;
 
-    private double speed = 260;
+    private double speed = 280;
+
+    private final TriggerButton reverseTrigger =
+            new TriggerButton(() -> gamepad1.left_trigger, 0.8);
+
+    boolean thr = false;
 
     //Servos
     double vInc = 0;
 
     private Servo hold;
 
+    private double aTError = 0;
+
     private boolean holding = true;
 
     // Shooting system
     private boolean shooterActive = false;
 
-    private final ElapsedTime shootTimer = new ElapsedTime();
-
     private boolean isRed = false;
 
-    double tpower = 0;
 
 
     //limelight
     private Limelight3A limeLight;
     private LLResult latestResult = null;
-    private double distance = -1;
+    private double distance = 140;
 
     //needed to pair with limelight
     private IMU imu;
@@ -76,7 +81,6 @@ public class mainTeleOp extends LinearOpMode {
     private boolean intaking = false;
 
     private final double rl = .8;
-    private double alpha = 0;
 
     // Turning PID
     private double lastError = 0;
@@ -90,6 +94,8 @@ public class mainTeleOp extends LinearOpMode {
         teleInit();
 
         waitForStart();
+
+        setFieldCentricHeading(MatchState.finalAutoHeadingDeg);
 
         runtime.reset();
 
@@ -157,6 +163,16 @@ public class mainTeleOp extends LinearOpMode {
         //imu
         imu = hardwareMap.get(IMU.class, "IMU");
 
+        IMU.Parameters parameters = new IMU.Parameters(
+                new RevHubOrientationOnRobot(
+                        RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+                        RevHubOrientationOnRobot.UsbFacingDirection.UP
+                )
+        );
+
+        imu.initialize(parameters);
+
+
         //directions
         frontLeftDrive.setDirection(DcMotor.Direction.REVERSE);
         backLeftDrive.setDirection(DcMotor.Direction.REVERSE);
@@ -170,12 +186,12 @@ public class mainTeleOp extends LinearOpMode {
 
         shooter.addFollower(outtake1);
         shooter.setPID(
-                0.00345,  // kP
+                0.00845,  // kP
                 0.00015,  // kI
                 0.00175,  // kF
                 0.1358     // kStatic
         );
-        shooter.setTargetVelocity(0);
+        shooter.setTargetVelocity(285);
         shooter.enable();
 
         limeLight.setPollRateHz(100);
@@ -198,20 +214,35 @@ public class mainTeleOp extends LinearOpMode {
         if (driveTrainMode == HConst.DriveTrainMode.AUTO_TARGET_GOAL) {
 
             double error = latestResult.getTx();
-            double k = distance > 91 ? 0.305 : 0.305;
-            double p = 0.0085;
-            double d = 0.008;
+            aTError = error;
 
             double currentTime = runtime.seconds();
             double deltaTime = currentTime - lastTime;
             double derivative = deltaTime > 0 ? (error - lastError) / deltaTime : 0;
 
-            double turnPower = p * error + d * derivative + Math.signum(error) * k;
+            double p = 0.02;
+            double kStatic = 0.016;
 
-            turnPower = Math.max(-.5, Math.min(.5, turnPower));
+            double turnPower = p * error;
 
-            if (Math.abs(error) < 1.8)
+            if (Math.abs(error) > 0.5) {
+                turnPower += Math.signum(error) * kStatic;
+            }
+
+            turnPower = Math.max(-0.4, Math.min(0.4, turnPower));
+
+            // Smooth slow-down near target
+            if (Math.abs(error) < 2) {
+                turnPower *= 0.85;
+            }
+            if (Math.abs(error) < 1.45) {
+                turnPower *= 0.65;
+            }
+
+            if (Math.abs(error) < 0.8) {
                 turnPower = 0;
+            }
+
 
             telemetry.addData("Turn Power:", turnPower);
             telemetry.addData("Error:", error);
@@ -219,8 +250,8 @@ public class mainTeleOp extends LinearOpMode {
             telemetry.addData("PID Delta Time:", deltaTime);
 
             frontLeftPower = turnPower;
-            backLeftPower = 0;
-            frontRightPower = 0;
+            backLeftPower = turnPower;
+            frontRightPower = -turnPower;
             backRightPower = -turnPower;
 
             lastError = error;
@@ -229,7 +260,7 @@ public class mainTeleOp extends LinearOpMode {
         } else if (driveTrainMode == HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC){
             double y = -gamepad1.left_stick_y; // Remember, Y stick value is reversed
             double x = gamepad1.left_stick_x * 1.1; // Counteract imperfect strafing
-            double rx = gamepad1.right_stick_x * rl;
+            double rx = gamepad1.right_stick_x * rl * 0.5;
 
             // Denominator is the largest motor power (absolute value) or 1
             // This ensures all the powers maintain the same ratio,
@@ -253,7 +284,9 @@ public class mainTeleOp extends LinearOpMode {
                 imu.resetYaw();
             }
 
-            double botHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+            double rawHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+            double botHeading = normalizeAngle(rawHeading - fieldHeadingOffset);
+            //double botHeading = rawHeading;
 
             // Rotate the movement direction counter to the bot's rotation
             double rotX = x * Math.cos(-botHeading) - y * Math.sin(-botHeading);
@@ -298,20 +331,30 @@ public class mainTeleOp extends LinearOpMode {
 
         if(intaking)
             intakePower = 0.5;
+
+
         //transferPower = shooterActive ? tpower : transferPower;
 
         if((shooterActive) && distance >= 0) {
             shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance) + vInc);
+        } else if(distance>=0){
+            shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance) + vInc);
         } else {
-            shooter.setTargetVelocity(0);
+            shooter.setTargetVelocity(280);
         }
 
 
         if(intaking)
-            transferPower = 0.41;
+            transferPower = 0.8;
+
+        if(reverseTrigger.isPressed()){
+            shooter.setTargetVelocity(-100);
+            transferPower = -1;
+            intakePower = -1;
+        }
 
         if (gamepad1.dpad_down) {
-           vInc = vInc - 1;
+            vInc = vInc - 1;
         }
 
         if (gamepad1.dpad_up) {
@@ -346,6 +389,11 @@ public class mainTeleOp extends LinearOpMode {
         telemetry.addData("---------------------------------------------------", "-");
         telemetry.addData("Velocity Increment: ", vInc);
         telemetry.addData("---------------------------------------------------", "-");
+        if(latestResult != null && latestResult.isValid()) {
+            telemetry.addData("Capture (ms)", latestResult.getCaptureLatency());
+            telemetry.addData("Parse (ms)", latestResult.getParseLatency());
+            telemetry.addData("Targeting (ms)", latestResult.getTargetingLatency());
+        }
 
         /*
         telemetry.addData("shooter is toggled: ", shooterOn.isToggled());
@@ -387,7 +435,7 @@ public class mainTeleOp extends LinearOpMode {
             if(id == (isRed ? 24 : 20))
                 distance = getDistance(result) * 39.3701 + 7.5 ;
             else{
-                distance = -1;
+                distance = 140;
             }
             latestResult = result;
 
@@ -420,11 +468,14 @@ public class mainTeleOp extends LinearOpMode {
         else if(gamepad1.right_bumper)
             defaultMode = HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC;
 
+
+
         if(!shootTrigger.isPressed()){
             seqTime = runtime.seconds();
             shooterActive = false;
             holding = true;
             intaking = false;
+            thr = false;
         } else {
             double t = runtime.seconds() - seqTime;
             double p = 0.12;
@@ -434,28 +485,38 @@ public class mainTeleOp extends LinearOpMode {
             intaking = true;
             //tpower =  0.1 + Math.pow(t, 1.3) * 0.1;
 
-            if(t < 0.4){
+            if(t < 0.15){
                 driveTrainMode = HConst.DriveTrainMode.STOP;
             } else{
                 driveTrainMode = HConst.DriveTrainMode.AUTO_TARGET_GOAL;
             }
 
-            if (t < 1.7) {
-                holding = true;
-            } else if (t < 1.5 + p + 10) {
-                holding = false;
-            } else if (t < 1.5 + p + s + 10) {
-                holding = true;
-            } else if (t < 1.5 + 2 * p + s) {
-                holding = false;
-            } else if (t < 1.5 + 2 * p + 2 * s) {
-                holding = true;
-            } else if (t < 1.5 + 3 * p + 2 * s) {
-                holding = false;
-            } else if (t < 1.5 + 3 * p + 3 * s) {
-                holding = true;
-            } else {
-                holding = false;
+            boolean velocityReady =
+                    Math.abs(shooter.getMeasuredVelocity() - shooter.getTargetVelocity()) <= 3.5;
+
+            boolean angleReady = Math.abs(aTError) < 2;
+
+            boolean shooterReady = velocityReady && angleReady;
+
+            if (!thr) {
+
+                if (t < 0.8) {
+                    // Phase 1: never shoot
+                    holding = true;
+
+                } else if (t < 1.5) {
+                    // Phase 2: shoot only if velocity good
+                    holding = !shooterReady;
+
+                    if (shooterReady) {
+                        thr = true;
+                    }
+
+                } else {
+                    // Phase 3: force shoot
+                    holding = false;
+                    thr = true;
+                }
             }
 
         }
@@ -487,32 +548,19 @@ public class mainTeleOp extends LinearOpMode {
         if (result != null && result.isValid())
             return (HConst.LLH2 - HConst.LLH1) / (Math.tan(Math.toRadians(HConst.LLANGL + result.getTy())));
 
-        return -1;
+        return 140;
     }
 
-    /*
-    private void fire() {
-        char[] order = seq.toCharArray();
-        for (int i = 0; i < 3;i++) {
-            switch (order[i]) {
-                case 'p':
-            }
-        }
+    public double normalizeAngle(double angle) {
+        while (angle > Math.PI) angle -= 2 * Math.PI;
+        while (angle < -Math.PI) angle += 2 * Math.PI;
+        return angle;
     }
 
-     */
+    private void setFieldCentricHeading(double desiredHeadingDegrees) {
+        double currentHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
+        double desiredHeading = Math.toRadians(desiredHeadingDegrees);
 
-    /*
-    private void launch(String color) {
-        Artifact.currentDisplacement = carol.getPosition();
-        int index = 0;
-        for (Artifact se : artif) {
-            if (se.getColor().equals(color)) {
-                index = artif.indexOf(se);
-            }
-        }
-
+        fieldHeadingOffset = currentHeading - desiredHeading;
     }
-
-     */
 }
