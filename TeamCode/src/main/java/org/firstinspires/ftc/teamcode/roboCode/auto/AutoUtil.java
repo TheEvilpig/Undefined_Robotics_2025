@@ -19,7 +19,7 @@ import org.firstinspires.ftc.teamcode.util.HConst;
 import org.firstinspires.ftc.teamcode.util.MatchState;
 
 public class AutoUtil {
-    public final double SHOOT_TIME = 0.95;
+    public final double SHOOT_TIME = 1.5;
     public final double DEFAULT_VELOCITY = 250;
 
     AutoConfig config;
@@ -172,7 +172,7 @@ public class AutoUtil {
 
         double startTime = timer.getElapsedTimeSeconds();
 
-        transfer.setPower(0.83);
+        transfer.setPower(0.8);
 
         while (opMode.opModeIsActive() &&
                 (timer.getElapsedTimeSeconds() - startTime) < SHOOT_TIME) {

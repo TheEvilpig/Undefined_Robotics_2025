@@ -11,17 +11,17 @@ public class RedFarConfig implements AutoConfig {
 
     @Override
     public Pose farShooting() {
-        return new Pose(84, 25.5, Math.toRadians(242.5));
+        return new Pose(84, 25.5, Math.toRadians(243));
     }
 
     @Override
     public Pose closeShooting() {
-        return new Pose(85, 86, Math.toRadians(227.5));
+        return new Pose(83, 84, Math.toRadians(227.5));
     }
 
     @Override
     public Pose farIntakeStart() {
-        return new Pose(98, 26, Math.toRadians(0));
+        return new Pose(93, 26, Math.toRadians(0));
     }
 
     @Override
@@ -31,7 +31,7 @@ public class RedFarConfig implements AutoConfig {
 
     @Override
     public Pose midIntakeStart() {
-        return new Pose(98, 50.5, Math.toRadians(0));
+        return new Pose(99, 50.5, Math.toRadians(0));
     }
 
     @Override
@@ -41,7 +41,7 @@ public class RedFarConfig implements AutoConfig {
 
     @Override
     public Pose closeIntakeStart() {
-        return new Pose(98, 74.5, Math.toRadians(0));
+        return new Pose(93, 74.5, Math.toRadians(0));
     }
 
     @Override
@@ -51,11 +51,11 @@ public class RedFarConfig implements AutoConfig {
 
     @Override
     public double farVelocity() {
-        return 338;
+        return 339;
     }
 
     @Override
     public double closeVelocity() {
-        return 294;
+        return 305;
     }
 }

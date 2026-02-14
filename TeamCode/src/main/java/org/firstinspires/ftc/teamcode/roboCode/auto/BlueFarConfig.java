@@ -11,42 +11,43 @@ public class BlueFarConfig implements AutoConfig {
 
     @Override
     public Pose farShooting() {
-        return new Pose(60, 13, Math.toRadians(295.5));
+        return new Pose(60,
+                14, Math.toRadians(296));
     }
 
     @Override
     public Pose closeShooting() {
-        return new Pose(65, 73, Math.toRadians(311.5));
+        return new Pose(61, 84, Math.toRadians(318.5));
     }
 
     @Override
     public Pose farIntakeStart() {
-        return new Pose(48, 49, Math.toRadians(180));
+        return new Pose(52, 48, Math.toRadians(180));
     }
 
     @Override
     public Pose farIntakeEnd() {
-        return new Pose(23, 49, Math.toRadians(180));
+        return new Pose(23, 48, Math.toRadians(180));
     }
 
     @Override
     public Pose midIntakeStart() {
-        return new Pose(64, 68, Math.toRadians(180));
+        return new Pose(52, 71, Math.toRadians(180));
     }
 
     @Override
     public Pose midIntakeEnd() {
-        return new Pose(18, 72, Math.toRadians(180));
+        return new Pose(23, 71, Math.toRadians(180));
     }
 
     @Override
     public Pose closeIntakeStart() {
-        return new Pose(48, 94, Math.toRadians(180));
+        return new Pose(52, 90, Math.toRadians(180));
     }
 
     @Override
     public Pose closeIntakeEnd() {
-        return new Pose(28, 94, Math.toRadians(180));
+        return new Pose(26, 90, Math.toRadians(180));
     }
 
     /*@Override
@@ -56,11 +57,11 @@ public class BlueFarConfig implements AutoConfig {
 
     @Override
     public double farVelocity() {
-        return 339;
+        return 348;
     }
 
     @Override
     public double closeVelocity() {
-        return 305;
+        return 297.25;
     }
 }
