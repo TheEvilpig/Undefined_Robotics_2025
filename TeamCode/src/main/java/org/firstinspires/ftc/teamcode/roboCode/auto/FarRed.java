@@ -5,14 +5,18 @@ import com.pedropathing.geometry.BezierLine;
 import com.pedropathing.geometry.Pose;
 import com.pedropathing.paths.PathChain;
 import com.pedropathing.util.Timer;
+import com.qualcomm.hardware.rev.RevHubOrientationOnRobot;
 import com.qualcomm.robotcore.eventloop.opmode.Autonomous;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotorEx;
+import com.qualcomm.robotcore.hardware.IMU;
 import com.qualcomm.robotcore.hardware.Servo;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.pedroPathing.Constants;
 import org.firstinspires.ftc.teamcode.util.DcMotorSystem;
 import org.firstinspires.ftc.teamcode.util.HConst;
+import org.firstinspires.ftc.teamcode.util.MatchState;
 
 
 @Autonomous(name="Far Red", group = "Autonomous")
@@ -53,10 +57,23 @@ public class FarRed extends LinearOpMode {
 
     // Define path
     private PathChain pathToTarget;
+
+    private IMU imu;
     private PathChain pathToTarget1;
 
     @Override
     public void runOpMode() {
+        imu = hardwareMap.get(IMU.class, "IMU");
+
+        IMU.Parameters parameters = new IMU.Parameters(
+                new RevHubOrientationOnRobot(
+                        RevHubOrientationOnRobot.LogoFacingDirection.LEFT,
+                        RevHubOrientationOnRobot.UsbFacingDirection.UP
+                )
+        );
+
+        imu.initialize(parameters);
+        imu.resetYaw();
         //shooting system
         intake = hardwareMap.get(DcMotorEx.class, HConst.INTAKE);
 
@@ -112,23 +129,10 @@ public class FarRed extends LinearOpMode {
         intake.setPower(0.5);
         followTwoPointPath(start, farShooting, 5);
         shootSequence(FAR_SHOOTING_VELOCITY, 3);
+        double headingDeg =
+                imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES);
 
-        /*followTwoPointPath(farShooting, farIntakeStart, 3);
-        intake.setPower(1);
-        transfer.setPower(1);
-        followTwoPointPath(farIntakeStart, farIntakeEnd, 3);
-        intake.setPower(0.5);
-        transfer.setPower(0);
-
-
-        // Return to far shooting and shoot
-        shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
-        followTwoPointPath(farIntakeEnd, farIntakeStart, 1);
-        followTwoPointPath(farIntakeStart, farShooting2, 7);
-        shootSequence(FAR_SHOOTING_VELOCITY2, 3);*/
-
-        // Park
-        followTwoPointPath(farShooting, park, 5);
+        MatchState.finalAutoHeadingDeg = headingDeg;
 
     }
 

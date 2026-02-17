@@ -13,6 +13,12 @@ public interface AutoConfig {
     Pose closeIntakeStart();
     Pose closeIntakeEnd();
 
+    Pose humanPlayerStart();
+    Pose humanPlayerEnd();
+
+    Pose secretTunnel();
+
+
     double farVelocity();
     double closeVelocity();
 }

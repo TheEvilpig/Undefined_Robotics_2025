@@ -118,7 +118,7 @@ public class DcMotorSystem {
 
         measuredVelocity =
                 (currentPosition - lastPosition)
-                       / (ticksPerRev * deltaTime)
+                        / (ticksPerRev * deltaTime)
                         * 2.0 * Math.PI;
 
 
@@ -144,9 +144,9 @@ public class DcMotorSystem {
     //change this to have params for everything so you can change tvelocities in main with click fo a
     //button to do efficient testing
     public double computeTargetVelocityFromDistance(double x) {
-        if(x < 65) return 285; //close
-        if(x > 95) return 1 * x + 206.7; //far
-        return 1.05674 * x + 214.8756; //mid
+        if(x < 65) return 285 - 10; //close
+        if(x > 95) return 1 * x + 206.7 - 10; //far
+        return 1.05674 * x + 214.8756 - 10; //mid
     }
 
 

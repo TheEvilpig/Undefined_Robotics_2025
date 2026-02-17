@@ -27,23 +27,24 @@ public class FullClassifierSoloRed extends LinearOpMode {
         // take an extra path to not hit balls
         au.setShooterVelocity(au.config.closeVelocity());
 
-        au.followTwoPointPath(au.config.farIntakeEnd(), au.config.farIntakeStart(), 1);
-        au.followTwoPointPath(au.config.farIntakeStart(), au.config.closeShooting(), 2.5);
+        au.followTwoPointPath(au.config.farIntakeEnd(), au.config.farIntakeStart(), .2);
+        au.followTwoPointPath(au.config.farIntakeStart(), au.config.closeShooting(), 2);
 
         au.shootSequence();
 
-        au.intakeMid(1.25, 1.25);
+        au.intakeMid(1.1, 1.25);
+        au.goToPoint(au.config.midIntakeStart(), 0.3);
 
-        au.scoreClose(2.5);
+        au.scoreClose(2.3);
 
-        au.intakeClose(1.25, 1.25);
+        au.intakeClose(1.1, 1.1);
 
-        au.scoreClose(2.5);
+        au.scoreClose(2);
 
         au.setShooterVelocity(0);
 
         // Park
-        au.goToPoint(park, 1);
+        au.goToPoint(park, .8);
         au.updateSharedHeading();
 
     }

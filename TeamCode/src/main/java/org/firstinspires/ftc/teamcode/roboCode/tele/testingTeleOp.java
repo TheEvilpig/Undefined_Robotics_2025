@@ -17,9 +17,9 @@ import org.firstinspires.ftc.teamcode.util.DcMotorSystem;
 import org.firstinspires.ftc.teamcode.util.HConst;
 import org.firstinspires.ftc.teamcode.util.*;
 
-@TeleOp(name="Main_TeleOp", group="Linear OpMode")
+@TeleOp(name="TESTING_teleop", group="Linear OpMode")
 
-public class mainTeleOp extends LinearOpMode {
+public class testingTeleOp extends LinearOpMode {
 
     public static String seq;
     private final ElapsedTime runtime = new ElapsedTime();
@@ -34,7 +34,7 @@ public class mainTeleOp extends LinearOpMode {
     private HConst.DriveTrainMode driveTrainMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
     private HConst.DriveTrainMode defaultMode = HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC;
 
-    private double fieldHeadingOffset = MatchState.finalAutoHeadingDeg; // radians
+    private double fieldHeadingOffset = 0; // radians
 
 
     private DcMotorSystem shooter;
@@ -61,9 +61,6 @@ public class mainTeleOp extends LinearOpMode {
     private boolean shooterActive = false;
 
     private boolean isRed = false;
-
-    private final ToggleButton isFast =
-            new ToggleButton(() -> gamepad1.y);
 
 
 
@@ -261,9 +258,9 @@ public class mainTeleOp extends LinearOpMode {
             lastTime = currentTime;
 
         } else if (driveTrainMode == HConst.DriveTrainMode.GAMEPAD_ROBOT_CENTRIC){
-            double y = applyDeadzone(-gamepad1.left_stick_y, 0.08) * (isFast.isToggled() ? 1 : 0.7);
-            double x = applyDeadzone(gamepad1.left_stick_x, 0.08) * 1.1 * (isFast.isToggled() ? 1 : 0.7);
-            double rx = applyDeadzone(gamepad1.right_stick_x, 0.08) * rl * (isFast.isToggled() ? 1 : 0.5);
+            double y = applyDeadzone(-gamepad1.left_stick_y, 0.08);
+            double x = applyDeadzone(gamepad1.left_stick_x, 0.08) * 1.1;
+            double rx = applyDeadzone(gamepad1.right_stick_x, 0.08) * rl;
 
             // Denominator is the largest motor power (absolute value) or 1
             // This ensures all the powers maintain the same ratio,
@@ -276,9 +273,9 @@ public class mainTeleOp extends LinearOpMode {
             backRightPower = (y + x - rx) / denominator;
 
         } else if (driveTrainMode == HConst.DriveTrainMode.GAMEPAD_FIELD_CENTRIC){
-            double y = applyDeadzone(-gamepad1.left_stick_y, 0.08) * (isFast.isToggled() ? 1 : 0.7);
-            double x = applyDeadzone(gamepad1.left_stick_x, 0.08) * 1.1 * (isFast.isToggled() ? 1 : 0.7);
-            double rx = applyDeadzone(gamepad1.right_stick_x, 0.08) * rl * (isFast.isToggled() ? 1 : 0.5);
+            double y = applyDeadzone(-gamepad1.left_stick_y, 0.08);
+            double x = applyDeadzone(gamepad1.left_stick_x, 0.08) * 1.1;
+            double rx = applyDeadzone(gamepad1.right_stick_x, 0.08) * rl;
 
             // This button choice was made so that it is hard to hit on accident,
             // it can be freely changed based on preference.
@@ -288,8 +285,7 @@ public class mainTeleOp extends LinearOpMode {
             }
 
             double rawHeading = imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
-            double botHeading = normalizeAngle(rawHeading + fieldHeadingOffset -
-                    (isRed ? 90 : -90));
+            double botHeading = normalizeAngle(rawHeading - fieldHeadingOffset);
             //double botHeading = rawHeading;
 
             // Rotate the movement direction counter to the bot's rotation
@@ -329,7 +325,7 @@ public class mainTeleOp extends LinearOpMode {
         double intakePower = 0.2;
 
         if (allOn) {
-            intakePower = 1;
+            intakePower = .85;
             transferPower = .42;
         }
 
@@ -342,9 +338,9 @@ public class mainTeleOp extends LinearOpMode {
         if((shooterActive) && distance >= 0) {
             shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance) + vInc);
         } else if(distance>=0){
-            shooter.setTargetVelocity(shooter.computeTargetVelocityFromDistance(distance) + vInc);
+            shooter.setTargetVelocity(0);
         } else {
-            shooter.setTargetVelocity(280);
+            shooter.setTargetVelocity(0);
         }
 
 
@@ -393,13 +389,11 @@ public class mainTeleOp extends LinearOpMode {
         telemetry.addData("---------------------------------------------------", "-");
         telemetry.addData("Velocity Increment: ", vInc);
         telemetry.addData("---------------------------------------------------", "-");
-        telemetry.addData("Speed: ", isFast.isToggled() ? "FAST" : "SLOW");
-        telemetry.addData("---------------------------------------------------", "-");
-        /*if(latestResult != null && latestResult.isValid()) {
+        if(latestResult != null && latestResult.isValid()) {
             telemetry.addData("Capture (ms)", latestResult.getCaptureLatency());
             telemetry.addData("Parse (ms)", latestResult.getParseLatency());
             telemetry.addData("Targeting (ms)", latestResult.getTargetingLatency());
-        }*.\/
+        }
 
         /*
         telemetry.addData("shooter is toggled: ", shooterOn.isToggled());
@@ -462,8 +456,6 @@ public class mainTeleOp extends LinearOpMode {
         //shooterOn.update();
         //gamepad1.dpadUp
         allOn = gamepad1.x;
-
-        isFast.update();
 
         //intake / transfer
         //intaking = gamepad1.x;

@@ -27,7 +27,7 @@ public class BlueFarConfig implements AutoConfig {
 
     @Override
     public Pose farIntakeEnd() {
-        return new Pose(23, 48, Math.toRadians(180));
+        return new Pose(29, 48, Math.toRadians(180));
     }
 
     @Override
@@ -42,18 +42,23 @@ public class BlueFarConfig implements AutoConfig {
 
     @Override
     public Pose closeIntakeStart() {
-        return new Pose(52, 90, Math.toRadians(180));
+        return new Pose(52, 94, Math.toRadians(180));
     }
 
     @Override
     public Pose closeIntakeEnd() {
-        return new Pose(26, 90, Math.toRadians(180));
+        return new Pose(26, 94, Math.toRadians(180));
     }
 
     /*@Override
     public Pose park() {
         return new Pose(28, 72, Math.toRadians(270));
     }*/
+    public Pose humanPlayerStart(){return new Pose(26,28, 240);}
+
+    public Pose humanPlayerEnd(){return new Pose(26, 8, 240);}
+
+    public Pose secretTunnel(){return new Pose();}
 
     @Override
     public double farVelocity() {

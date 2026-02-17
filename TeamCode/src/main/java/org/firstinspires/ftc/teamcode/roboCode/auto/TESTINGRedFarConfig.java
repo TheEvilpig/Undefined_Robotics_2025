@@ -2,7 +2,7 @@ package org.firstinspires.ftc.teamcode.roboCode.auto;
 
 import com.pedropathing.geometry.Pose;
 
-public class RedFarConfig implements AutoConfig{
+public class TESTINGRedFarConfig implements AutoConfig {
 
     @Override
     public Pose start() {
@@ -21,7 +21,7 @@ public class RedFarConfig implements AutoConfig{
 
     @Override
     public Pose farIntakeStart() {
-        return new Pose(93, 26, Math.toRadians(0));
+        return new Pose(85, 26, Math.toRadians(0));
     }
 
     @Override
@@ -48,12 +48,6 @@ public class RedFarConfig implements AutoConfig{
     public Pose closeIntakeEnd() {
         return new Pose(143, 72, Math.toRadians(0));
     }
-
-    public Pose humanPlayerStart(){return new Pose(140,28, 300);}
-
-    public Pose humanPlayerEnd(){return new Pose(140, 8, 300);}
-
-    public Pose secretTunnel(){return new Pose();}
 
     @Override
     public double farVelocity() {

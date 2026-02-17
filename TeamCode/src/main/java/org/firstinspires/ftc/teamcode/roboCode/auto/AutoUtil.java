@@ -19,7 +19,7 @@ import org.firstinspires.ftc.teamcode.util.HConst;
 import org.firstinspires.ftc.teamcode.util.MatchState;
 
 public class AutoUtil {
-    public final double SHOOT_TIME = 1.5;
+    public final double SHOOT_TIME = 1;
     public final double DEFAULT_VELOCITY = 250;
 
     AutoConfig config;

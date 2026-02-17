@@ -8,7 +8,7 @@ import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 @Autonomous(name="Full Classifier Solo Blue", group = "Autonomous")
 public class FullClassifierSoloBlue extends LinearOpMode {
     AutoUtil au;
-    Pose park = new Pose(28, 72, Math.toRadians(270));
+    Pose park = new Pose(40, 72, Math.toRadians(270));
 
     @Override
     public void runOpMode() {
@@ -34,16 +34,16 @@ public class FullClassifierSoloBlue extends LinearOpMode {
 
         au.intakeMid(1.25, 1.25);
 
-        au.scoreClose(2.5);
+        au.scoreClose(2.3);
 
-        au.intakeClose(1.25, 1.25);
+        au.intakeClose(1.1, 1.1);
 
         au.scoreClose(2.5);
 
         au.setShooterVelocity(0);
 
         // Park
-        au.goToPoint(park, 1);
+        au.goToPoint(park, .8);
         au.updateSharedHeading();
 
 
