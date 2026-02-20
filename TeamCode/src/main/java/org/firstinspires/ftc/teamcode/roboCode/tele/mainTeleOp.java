@@ -1,3 +1,4 @@
+/*
 package org.firstinspires.ftc.teamcode.roboCode.tele;
 import com.qualcomm.hardware.limelightvision.LLResult;
 import com.qualcomm.hardware.limelightvision.Limelight3A;
@@ -122,6 +123,7 @@ public class mainTeleOp extends LinearOpMode {
     /**
      * intitialize, hardwaremap
      */
+/*
     private void teleInit() {
         //artif = new ArrayList<Artifact>();
         //carolPos = 0;
@@ -137,7 +139,7 @@ public class mainTeleOp extends LinearOpMode {
         //outtake 1 is in same orientation as previous outtake motor
         outtake1 = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE1);
         outtake2 = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE2);
-        transfer = hardwareMap.get(DcMotorEx.class, HConst.TRANSFER);
+        transfer = hardwareMap.get(DcMotorEx.class, HConst.TRANSFER2);
 
         //shooter system
         shooter = new DcMotorSystem(
@@ -155,6 +157,7 @@ public class mainTeleOp extends LinearOpMode {
         carol = hardwareMap.get(Servo.class,"Sort");
 
          */
+/*
 
         //Color Sensor
         color = hardwareMap.get(NormalizedColorSensor.class, HConst.COLOR);
@@ -185,7 +188,7 @@ public class mainTeleOp extends LinearOpMode {
         intake.setDirection(HConst.INTAKE_DIR);
         outtake1.setDirection(HConst.OUTTAKE1_DIR);
         outtake2.setDirection(HConst.OUTTAKE2_DIR);
-        transfer.setDirection(HConst.TRANSFER_DIR);
+        transfer.setDirection(HConst.TRANSFER1_DIR);
 
         shooter.addFollower(outtake1);
         shooter.setPID(
@@ -207,7 +210,9 @@ public class mainTeleOp extends LinearOpMode {
     /**
      * Drives the robot chassis motors
      */
+/*
     private void updateDrivetrain() {
+
 
         double frontLeftPower = 0;
         double backLeftPower = 0;
@@ -324,6 +329,7 @@ public class mainTeleOp extends LinearOpMode {
     /**
      * Drives the intake, transfer, outtake motors and braking system servos.
      */
+/*
     private void updateAuxiliaryMotors() {
         double transferPower = 0;
         double intakePower = 0.2;
@@ -409,11 +415,12 @@ public class mainTeleOp extends LinearOpMode {
          */
 
 
-    }
+
 
     /**
      * Scans april tags on targets to help in robot allignment for accurate scoring trajectory.
      */
+    /*
     private void scanAprilTags() {
 
         YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
@@ -455,6 +462,7 @@ public class mainTeleOp extends LinearOpMode {
     /**
      * Scans gamepad to update teleop controlls
      */
+    /*
     private void scanGamepads(){
         //update toggleable buttons
 
@@ -547,6 +555,7 @@ public class mainTeleOp extends LinearOpMode {
      *
      * @return the horizontal displacement/distance from the robot to the target.
      */
+    /*
     private double getDistance(LLResult result) {
 
         YawPitchRollAngles ore = imu.getRobotYawPitchRollAngles();
@@ -577,3 +586,6 @@ public class mainTeleOp extends LinearOpMode {
     }
 
 }
+/*
+
+     */

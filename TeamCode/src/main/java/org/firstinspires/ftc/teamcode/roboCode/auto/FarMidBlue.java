@@ -1,3 +1,4 @@
+/*
 package org.firstinspires.ftc.teamcode.roboCode.auto;
 
 import com.pedropathing.follower.Follower;
@@ -44,7 +45,7 @@ public class FarMidBlue extends LinearOpMode {
     DcMotorEx intake;
     DcMotorEx outtake;
     DcMotorEx outtake2;
-    DcMotorEx transfer;
+    DcMotorEx transfer1,transfer2;
     Follower follower;
 
     private Servo hold;
@@ -60,19 +61,18 @@ public class FarMidBlue extends LinearOpMode {
     @Override
     public void runOpMode() {
         //shooting system
-        intake = hardwareMap.get(DcMotorEx.class, HConst.INTAKE);
-
         //outtake 1 is in same orientation as previous outtake motor
         outtake = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE1);
         outtake2 = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE2);
-        transfer = hardwareMap.get(DcMotorEx.class, HConst.TRANSFER);
+        transfer1 = hardwareMap.get(DcMotorEx.class, HConst.TRANSFER2);
+        transfer2 = hardwareMap.get(DcMotorEx.class,HConst.TRANSFER2);
 
         hold = hardwareMap.get(Servo.class, HConst.HOLD);
 
-        intake.setDirection(HConst.INTAKE_DIR);
         outtake.setDirection(HConst.OUTTAKE1_DIR);
         outtake2.setDirection(HConst.OUTTAKE2_DIR);
-        transfer.setDirection(HConst.TRANSFER_DIR);
+        transfer1.setDirection(HConst.TRANSFER1_DIR);
+        transfer2.setDirection(HConst.TRANSFER2_DIR);
 
         shooter = new DcMotorSystem(
                 outtake2,
@@ -117,10 +117,12 @@ public class FarMidBlue extends LinearOpMode {
 
         followTwoPointPath(farShooting, farIntakeStart, 2.9);
         intake.setPower(1);
-        transfer.setPower(1);
+        transfer1.setPower(1);
+        transfer2.setPower(1);
         followTwoPointPath(farIntakeStart, farIntakeEnd, 2.5);
         intake.setPower(0.5);
-        transfer.setPower(0);
+        transfer1.setPower(0);
+        transfer2.setPower(0);
 
         // Return to far shooting and shoot
         shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
@@ -131,10 +133,12 @@ public class FarMidBlue extends LinearOpMode {
         // Intake second line
         followTwoPointPath(farShooting, midIntakeStart, 3.5);
         intake.setPower(1);
-        transfer.setPower(1);
+        transfer1.setPower(1);
+        transfer2.setPower(1);
         followTwoPointPath(midIntakeStart, midIntakeEnd, 2);
         intake.setPower(0.5);
-        transfer.setPower(0);
+        transfer1.setPower(0);
+        transfer2.setPower(0);
 
         // Move to close shooting position and shoot
         shooter.setTargetVelocity(CLOSE_SHOOTING_VELOCITY);
@@ -154,7 +158,8 @@ public class FarMidBlue extends LinearOpMode {
         shooter.setTargetVelocity(velocity);
         hold.setPosition(HConst.HOLD_ACTIVE);
         intake.setPower(1);
-        transfer.setPower(0.75);
+        transfer1.setPower(0.75);
+        transfer2.setPower(.75);
         double startTime = timer.getElapsedTimeSeconds();
         double currentTime;
 
@@ -222,3 +227,5 @@ public class FarMidBlue extends LinearOpMode {
 
 
 }
+
+ */

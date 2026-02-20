@@ -1,4 +1,4 @@
-package org.firstinspires.ftc.teamcode.roboCode.auto;
+/* package org.firstinspires.ftc.teamcode.roboCode.auto;
 
 import com.pedropathing.geometry.Pose;
 
@@ -59,3 +59,5 @@ public class TESTINGRedFarConfig implements AutoConfig {
         return 305;
     }
 }
+
+ */

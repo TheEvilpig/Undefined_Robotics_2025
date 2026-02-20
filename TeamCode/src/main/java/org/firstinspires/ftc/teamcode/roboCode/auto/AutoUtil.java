@@ -23,11 +23,9 @@ public class AutoUtil {
     public final double DEFAULT_VELOCITY = 250;
 
     AutoConfig config;
-
-    DcMotorEx intake;
     DcMotorEx outtake;
     DcMotorEx outtake2;
-    DcMotorEx transfer;
+    DcMotorEx transfer1, transfer2;
     Follower follower;
 
     private IMU imu;
@@ -58,18 +56,17 @@ public class AutoUtil {
         // Hardware Mapping
         // -----------------------
 
-        intake = hw.get(DcMotorEx.class, HConst.INTAKE);
         outtake = hw.get(DcMotorEx.class, HConst.OUTTAKE1);
         outtake2 = hw.get(DcMotorEx.class, HConst.OUTTAKE2);
-        transfer = hw.get(DcMotorEx.class, HConst.TRANSFER);
+        transfer1 = hw.get(DcMotorEx.class, HConst.TRANSFER1);
+        transfer2=hw.get(DcMotorEx.class,HConst.TRANSFER2);
 
         hold = hw.get(Servo.class, HConst.HOLD);
 
-        intake.setDirection(HConst.INTAKE_DIR);
         outtake.setDirection(HConst.OUTTAKE1_DIR);
         outtake2.setDirection(HConst.OUTTAKE2_DIR);
-        transfer.setDirection(HConst.TRANSFER_DIR);
-
+        transfer1.setDirection(HConst.TRANSFER1_DIR);
+        transfer2.setDirection(HConst.TRANSFER2_DIR);
         // -----------------------
         // Shooter System
         // -----------------------
@@ -172,8 +169,8 @@ public class AutoUtil {
 
         double startTime = timer.getElapsedTimeSeconds();
 
-        transfer.setPower(0.8);
-
+        transfer1.setPower(0.8);
+        transfer2.setPower(0.8);
         while (opMode.opModeIsActive() &&
                 (timer.getElapsedTimeSeconds() - startTime) < SHOOT_TIME) {
             shooter.update();
@@ -181,17 +178,18 @@ public class AutoUtil {
         }
 
         hold.setPosition(HConst.HOLD_ACTIVE);
-        transfer.setPower(0);
+        transfer1.setPower(0);
+        transfer2.setPower(0);
     }
 
     public void setIntakePowers() {
-        intake.setPower(1);
-        transfer.setPower(0.85);
+        transfer1.setPower(0.85);
+        transfer2.setPower(0.85);
     }
 
     public void setIdlePowers() {
-        intake.setPower(0.35);
-        transfer.setPower(0);
+        transfer1.setPower(.2);
+        transfer2.setPower(0.85);
     }
 
     public void scorePreloads(double t){

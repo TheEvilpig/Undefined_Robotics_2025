@@ -12,7 +12,6 @@ import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.robotcore.external.navigation.Pose3D;
 import org.firstinspires.ftc.robotcore.external.navigation.YawPitchRollAngles;
 
-import kotlin.math.UMathKt;
 
 @TeleOp(name="Testing", group="Linear OpMode")
 public class testing extends LinearOpMode {

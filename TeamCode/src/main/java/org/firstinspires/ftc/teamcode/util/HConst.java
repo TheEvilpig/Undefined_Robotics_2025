@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.util;
 
 import com.qualcomm.hardware.gobilda.GoBildaPinpointDriver;
+import com.qualcomm.robotcore.hardware.Servo;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.DcMotorSimple;
 
@@ -33,6 +34,14 @@ public final class HConst {
     public static final String RIGHT_FRONT = "rf";
     public static final String RIGHT_BACK  = "rb";
 
+    // servo names
+    public static final String TURRET1 = "t1";
+    public static final String TURRET2 = "t2";
+    public static final String TURRET3 = "t3";
+    public static final String HOOD = "h";
+    public static final String INTAKE_LEFT_SERVO = "iLiftLeft";
+    public static final String INTAKE_RIGHT_SERVO = "iLiftRight";
+
     // drivetrain directions
     public static final DcMotor.Direction LF_DIR = DcMotor.Direction.REVERSE;
     public static final DcMotor.Direction LB_DIR = DcMotor.Direction.REVERSE;
@@ -40,22 +49,30 @@ public final class HConst {
     public static final DcMotor.Direction RB_DIR = DcMotor.Direction.FORWARD;
 
     // aux motors
-    public static final String INTAKE = "Intake";
-    public static final String OUTTAKE1 = "Outtake1";
-    public static final String OUTTAKE2 = "Outtake2";
-    public static final String TRANSFER = "Transfer";
+    public static final String OUTTAKE1 = "outtake1";
+    public static final String OUTTAKE2 = "outtake2";
+    public static final String TRANSFER1 = "transfer1";
+    public static final String TRANSFER2 = "transfer2";
     public static final String COLOR = "Color";
 
     // aux directions
-    public static final DcMotorSimple.Direction INTAKE_DIR = DcMotorSimple.Direction.REVERSE;
     public static final DcMotorSimple.Direction OUTTAKE1_DIR = DcMotorSimple.Direction.REVERSE;
     public static final DcMotorSimple.Direction OUTTAKE2_DIR = DcMotorSimple.Direction.FORWARD;
-    public static final DcMotorSimple.Direction TRANSFER_DIR = DcMotorSimple.Direction.REVERSE;
+    public static final DcMotorSimple.Direction TRANSFER1_DIR = DcMotorSimple.Direction.FORWARD;
+    public static final DcMotorSimple.Direction TRANSFER2_DIR = DcMotorSimple.Direction.REVERSE;
+
+
+    //servo directions
+    public static final Servo.Direction TURRET_DIR = Servo.Direction.FORWARD;
+
+    public static final Servo.Direction INTAKE1_SERV_DIR = Servo.Direction.FORWARD;
+    public static final Servo.Direction INTAKE2_SERV_DIR = Servo.Direction.REVERSE;
+    public static final Servo.Direction HOOD_DIR = Servo.Direction.FORWARD;
+
 
     // ----------------------
     // PINPOINT ODOMETRY CONSTANTS
     // ----------------------
-
     // hardware name in config
     public static final String PINPOINT_NAME = "pinpoint";
 

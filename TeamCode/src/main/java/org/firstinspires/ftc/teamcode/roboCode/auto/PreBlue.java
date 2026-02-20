@@ -1,4 +1,6 @@
+/*
 package org.firstinspires.ftc.teamcode.roboCode.auto;
+
 
 import com.pedropathing.follower.Follower;
 import com.pedropathing.geometry.BezierLine;
@@ -59,14 +61,14 @@ public class PreBlue extends LinearOpMode {
         //outtake 1 is in same orientation as previous outtake motor
         outtake = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE1);
         outtake2 = hardwareMap.get(DcMotorEx.class, HConst.OUTTAKE2);
-        transfer = hardwareMap.get(DcMotorEx.class, HConst.TRANSFER);
+        transfer = hardwareMap.get(DcMotorEx.class, HConst.TRANSFER2);
 
         hold = hardwareMap.get(Servo.class, HConst.HOLD);
 
         intake.setDirection(HConst.INTAKE_DIR);
         outtake.setDirection(HConst.OUTTAKE1_DIR);
         outtake2.setDirection(HConst.OUTTAKE2_DIR);
-        transfer.setDirection(HConst.TRANSFER_DIR);
+        transfer.setDirection(HConst.TRANSFER1_DIR);
 
         shooter = new DcMotorSystem(
                 outtake2,
@@ -189,3 +191,5 @@ public class PreBlue extends LinearOpMode {
 
 
 }
+
+ */
