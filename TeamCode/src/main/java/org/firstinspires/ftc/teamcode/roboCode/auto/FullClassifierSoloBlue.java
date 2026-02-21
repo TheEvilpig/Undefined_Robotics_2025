@@ -20,7 +20,7 @@ public class FullClassifierSoloBlue extends LinearOpMode {
 
         au.start();
 
-        au.scorePreloads(3.0);
+        au.scoreFar(3.7);
 
         au.intakeFar(1.25, 1.25);
 

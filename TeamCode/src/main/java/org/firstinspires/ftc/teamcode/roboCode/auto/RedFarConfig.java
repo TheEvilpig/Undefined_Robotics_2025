@@ -55,6 +55,10 @@ public class RedFarConfig implements AutoConfig{
 
     public Pose secretTunnel(){return new Pose();}
 
+    public Pose leverStart(){return new Pose();}
+
+    public Pose leverEnd(){return new Pose();}
+
     @Override
     public double farVelocity() {
         return 339;

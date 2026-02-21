@@ -130,6 +130,11 @@ public final class HConst {
     public static final double HOLD_ACTIVE = 0;
     public static final double HOLD_INACTIVE = 1;
 
+    public static final double INTAKE1UP = 0;
+    public static final double INTAKE1DOWN = 1;
+    public static final double INTAKE2UP = 0;
+    public static final double INTAKE2DOWN = 1;
+
     // ----------------------
     // TELEOP ENUMS
     // ----------------------

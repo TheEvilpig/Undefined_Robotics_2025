@@ -21,6 +21,8 @@ import org.firstinspires.ftc.teamcode.util.MatchState;
 public class AutoUtil {
     public final double SHOOT_TIME = 1;
     public final double DEFAULT_VELOCITY = 250;
+    public final double FAR_SHOOTING_POS = 0.5;
+    public final double CLOSE_SHOOTING_POS = 0.5;
 
     AutoConfig config;
     DcMotorEx outtake;
@@ -31,6 +33,12 @@ public class AutoUtil {
     private IMU imu;
 
     private Servo hold;
+
+    private Servo intake1;
+    private Servo intake2;
+
+    private Servo hood;
+
 
     private Timer timer;
 
@@ -59,9 +67,12 @@ public class AutoUtil {
         outtake = hw.get(DcMotorEx.class, HConst.OUTTAKE1);
         outtake2 = hw.get(DcMotorEx.class, HConst.OUTTAKE2);
         transfer1 = hw.get(DcMotorEx.class, HConst.TRANSFER1);
-        transfer2=hw.get(DcMotorEx.class,HConst.TRANSFER2);
+        transfer2 = hw.get(DcMotorEx.class,HConst.TRANSFER2);
 
         hold = hw.get(Servo.class, HConst.HOLD);
+        intake1 = hw.get(Servo.class,HConst.INTAKE_LEFT_SERVO);
+        intake2 = hw.get(Servo.class,HConst.INTAKE_RIGHT_SERVO);
+        hood = hw.get(Servo.class,HConst.HOOD);
 
         outtake.setDirection(HConst.OUTTAKE1_DIR);
         outtake2.setDirection(HConst.OUTTAKE2_DIR);
@@ -183,28 +194,33 @@ public class AutoUtil {
     }
 
     public void setIntakePowers() {
+        intake1.setPosition(HConst.INTAKE1DOWN);
+        intake2.setPosition(HConst.INTAKE2DOWN);
         transfer1.setPower(0.85);
         transfer2.setPower(0.85);
     }
 
     public void setIdlePowers() {
-        transfer1.setPower(.2);
-        transfer2.setPower(0.85);
+        intake1.setPosition(HConst.INTAKE1UP);
+        intake2.setPosition(HConst.INTAKE2UP);
+        transfer1.setPower(0.1);
+        transfer2.setPower(0.1);
     }
 
-    public void scorePreloads(double t){
+    public void scoreFar(double t){
+        hood.setPosition(FAR_SHOOTING_POS);
         setShooterVelocity(config.farVelocity());
-
-        followTwoPointPath(config.start(), config.farShooting(), t);
+        followTwoPointPath(follower.getPose(), config.farShooting(), t);
         shootSequence();
-
         setShooterVelocity(DEFAULT_VELOCITY);
     }
 
     public void scoreClose(double t){
+        hood.setPosition(CLOSE_SHOOTING_POS);
         setShooterVelocity(config.closeVelocity());
         followTwoPointPath(follower.getPose(), config.closeShooting(), t);
         shootSequence();
+        setShooterVelocity(DEFAULT_VELOCITY);
     }
 
     public void intakeFar(double t, double t2){

@@ -20,7 +20,7 @@ public class HammerRed extends LinearOpMode {
 
         au.start();
 
-        au.scorePreloads(3.5);
+        au.scoreFar(3.5);
 
         au.intakeFar(1.75, 1.75);
 

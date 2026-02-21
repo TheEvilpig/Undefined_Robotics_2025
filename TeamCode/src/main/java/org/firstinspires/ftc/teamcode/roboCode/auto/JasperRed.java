@@ -22,7 +22,7 @@ public class JasperRed extends LinearOpMode {
 
         au.start();
 
-        au.scorePreloads(3.0);
+        au.scoreFar(3.0);
 
         au.goToPoint(au.config.humanPlayerStart(), 2);
         au.setIntakePowers();
